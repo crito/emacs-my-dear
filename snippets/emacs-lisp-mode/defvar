@@ -1,0 +1,6 @@
+#name: defvar
+#key: defvar
+# --
+(defvar $1
+  $0
+  "${2:docstring}")
