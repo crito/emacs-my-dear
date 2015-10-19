@@ -26,6 +26,8 @@
 ;; Make sure to place post.el into the site-lisp directory.
 
 ;;; Code:
+(require 'post)
+
 (setq auto-mode-alist
       (cons '("/tmp/mutt.*$" . post-mode) auto-mode-alist))
 (add-hook 'mail-mode-hook 'turn-on-auto-fill)

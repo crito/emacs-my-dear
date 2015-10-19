@@ -26,12 +26,18 @@
 ;; Install rubocop and ruby-lint to support flycheck.
 ;;   gem install rubocop ruby-lint
 ;;; Code:
+(require 'crito-packages)
+
 (defvar crito-ruby-packages
-  '(ruby-tools
+  '(projectile-rails
+    ruby-tools
     inf-ruby
     yari)
   "A list of packages to install from ELPA for ruby.")
 
-(provide 'crito-ruby)
+(crito-require-packages crito-ruby-packages)
 
+(add-hook 'ruby-mode-hook 'projectile-rails-on)
+
+(provide 'crito-ruby)
 ;;; crito-ruby.el ends here

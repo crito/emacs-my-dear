@@ -38,6 +38,8 @@
     exec-path-from-shell
     expand-region
     fastnav
+    fill-column-indicator
+    visible-mark
     git-gutter
     helm
     helm-descbinds
@@ -254,10 +256,16 @@
 
 ;; whitespace-mode config
 (require 'whitespace)
-(setq whitespace-line-column 80) ;; limit line length
+(setq whitespace-line-column 80)
 (setq whitespace-style '(face tabs empty trailing lines-tail))
 
-;; saner regex syntax
+;; Indicate the 80 columns limit
+(require 'fill-column-indicator)
+(setq fci-rule-character-color "#262626")
+(setq fci-rule-column 78)
+(setq fci-always-use-textual-rule t)
+
+;; Saner regex syntax
 (require 're-builder)
 (setq reb-re-syntax 'string)
 

@@ -51,8 +51,8 @@
 ;; Add to the load path.
 (add-to-list 'load-path modules-dir)
 (add-to-list 'load-path site-lisp-dir)
-(crito-add-subfolders-to-load-path modules-dir)
 (crito-add-subfolders-to-load-path site-lisp-dir)
+(crito-add-subfolders-to-load-path modules-dir)
 
 ;; Load all modules.
 (defvar crito-all-modules
@@ -68,6 +68,7 @@
         crito-haskell
         crito-ruby
         crito-shell
+        crito-mail
         crito-snippets)
       "List all modules we want to start.")
 

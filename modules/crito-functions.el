@@ -38,6 +38,27 @@
   (cl-letf ((predicate (lambda (m) (string= mode m))))
     (cl-some predicate minor-mode-list)))
 
+;; Take from
+;; https://www.masteringemacs.org/article/fixing-mark-commands-transient-mark-mode.
+(defun push-mark-no-activate ()
+  "Pushes `point' to `mark-ring' and does not activate the region.
+Equivalent to \\[set-mark-command] when \\[transient-mark-mode] is disabled"
+  (interactive)
+  (push-mark (point) t nil)
+  (message "Pushed mark to ring"))
+
+(defun jump-to-mark ()
+  "Jumps to the local mark, respecting the `mark-ring' order.
+This is the same as using \\[set-mark-command] with the prefix argument."
+  (interactive)
+  (set-mark-command 1))
+
+(defun exchange-point-and-mark-no-activate ()
+  "Identical to \\[exchange-point-and-mark] but will not activate the region."
+  (interactive)
+  (exchange-point-and-mark)
+  (deactivate-mark nil))
+
 ;; Take from prelude. Those are a bunch of handy functions.
 (defun prelude-move-beginning-of-line (arg)
   "Move point back to indentation of beginning of line.

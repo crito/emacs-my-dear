@@ -131,7 +131,8 @@ This functions should be added to the hooks of major modes for programming."
   (company-mode)
   (rainbow-mode)
   (rainbow-delimiters-mode)
-  (smartparens-mode))
+  (smartparens-mode)
+  (fci-mode 1))
 
 (add-hook 'prog-mode-hook 'crito-prog-mode-defaults)
 

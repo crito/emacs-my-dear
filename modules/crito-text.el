@@ -29,7 +29,8 @@
   "Default text mode hook, useful with any text."
   (when-program-exists ispell-program-name '(lambda () (flyspell-mode +1)))
   (abbrev-mode)
-  (auto-fill-mode +1))
+  (auto-fill-mode +1)
+  (fci-mode 1))
 
 (add-hook 'text-mode-hook 'crito-text-mode-defaults)
 

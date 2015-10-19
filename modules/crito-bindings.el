@@ -95,6 +95,9 @@
 (global-set-key (kbd "M-%") 'anzu-query-replace)
 (global-set-key (kbd "C-M-%") 'anzu-query-replace-regexp)
 
+;; Magit
+(global-set-key (kbd "C-c g") 'magit-status)
+
 ;; Shortcuts for operate on number.
 (smartrep-define-key global-map "C-c ."
   '(("+" . apply-operation-to-number-at-point)
@@ -109,5 +112,17 @@
     ("%" . apply-operation-to-number-at-point)
     ("'" . operate-on-number-at-point)))
 
+;; Fix up marking. Taken from mastering emacs.
+(global-set-key (kbd "C-`") 'push-mark-no-activate)
+(global-set-key (kbd "M-`") 'jump-to-mark)
+(define-key global-map [remap exchange-point-and-mark]
+  'exchange-point-and-mark-no-activate)
+
+;; Ruby specific bindings
+(add-hook 'ruby-mode-hook
+          '(lambda ()
+             (global-set-key (kbd "C-c M-j") 'inf-ruby)))
+
 (provide 'crito-bindings)
 ;;; crito-bindings.el ends here
+
