@@ -121,6 +121,14 @@
           '(lambda ()
              (global-set-key (kbd "C-c M-j") 'inf-ruby)))
 
+;; Code specific to markdown mode.
+(add-hook 'markdown-mode-hook
+          '(lambda ()
+             ;; M-p is bound to markdown-previous-link for markdown-mode. I unset
+             ;; it for now, because it clashes with a global key binding.
+             (local-unset-key "\M-p")
+             (global-set-key (kbd "C-c C-e p") 'pandoc-convert-to-pdf)))
+
 (provide 'crito-bindings)
 ;;; crito-bindings.el ends here
 

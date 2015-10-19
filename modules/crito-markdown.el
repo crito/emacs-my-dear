@@ -23,6 +23,7 @@
 ;; Visit <http://www.gnu.org/copyleft/gpl.html> for more information.
 
 ;;; Commentary:
+;; The pandoc library should be installed.
 
 ;;; Code:
 (require 'crito-packages)
@@ -44,10 +45,7 @@
 
 (defun crito-markdown-mode-defaults ()
   "Default markdown hook."
-  (pandoc-mode)
-  ;; M-p is bound to markdown-previous-link for markdown-mode. I unset
-  ;; it for now, because it clashes with a global key binding.
-  (local-unset-key "\M-p"))
+  (when-program-exists "pandoc" '(lambda () (pandoc-mode))))
 
 (add-hook 'markdown-mode-hook 'crito-markdown-mode-defaults)
 
