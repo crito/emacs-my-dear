@@ -56,21 +56,21 @@
 
 ;; Load all modules.
 (defvar crito-all-modules
-      '(crito-functions
-        crito-packages
-        crito-ui
-        crito-bindings
-        crito-editor
-        crito-programming
-        crito-text
-        crito-web-dev
-        crito-markdown
-        crito-haskell
-        crito-ruby
-        crito-shell
-        crito-mail
-        crito-snippets)
-      "List all modules we want to start.")
+  '(crito-functions
+    crito-packages
+    crito-ui
+    crito-bindings
+    crito-editor
+    crito-programming
+    crito-text
+    crito-web-dev
+    crito-markdown
+    crito-haskell
+    crito-ruby
+    crito-shell
+    crito-mail
+    crito-snippets)
+  "List all modules we want to start.")
 
 (dolist (module crito-all-modules)
   (require module))

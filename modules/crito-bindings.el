@@ -39,8 +39,8 @@
 
 ;; Map some handy functions.
 (global-set-key (kbd "C-a") 'prelude-move-beginning-of-line)
-(global-set-key (kbd "C-c r") 'prelude-rename-buffer-and-file)
-(global-set-key (kbd "C-c d") 'prelude-delete-file-and-buffer)
+(global-set-key (kbd "C-c C-c r") 'prelude-rename-buffer-and-file)
+(global-set-key (kbd "C-c C-c d") 'prelude-delete-file-and-buffer)
 
 ;; join lines, as in vim.
 (global-set-key (kbd "C-M-j") 'join-line)
@@ -52,15 +52,13 @@
 (global-set-key (kbd "M-p") 'ace-window)
 
 ;; C-j is normally bound to `newline-and-indent`. Let's use it for ace jump
-;; mode instead.
-;; (global-set-key (kbd "C-j") 'ace-jump-mode)
-;; (global-set-key (kbd "C-j l") 'ace-jump-line-mode)
-;; (global-set-key (kbd "C-j c") 'ace-jump-char-mode)
-(smartrep-define-key global-map "M-g"
-  '(("g" . goto-line)
-    ("j" . ace-jump-mode)
-    ("l" . ace-jump-line-mode)
-    ("c" . ace-jump-char-mode)))
+;; mode instead. Using smartrep here leads to weird results, where the
+;; continuation character isn't recognized if it's the same as the chord
+;; character, e.g. `M-g j` doesn't accept `j` as navigation character.
+(global-set-key (kbd "M-g g") 'goto-line)
+(global-set-key (kbd "M-g j") 'ace-jump-mode)
+(global-set-key (kbd "M-g c") 'ace-jump-char-mode)
+(global-set-key (kbd "M-g l") 'ace-jump-line-mode)
 
 ;; Helm
 (smartrep-define-key global-map "C-c e"
