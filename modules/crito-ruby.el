@@ -23,7 +23,8 @@
 ;; Visit <http://www.gnu.org/copyleft/gpl.html> for more information.
 
 ;;; Commentary:
-
+;; Install rubocop and ruby-lint to support flycheck.
+;;   gem install rubocop ruby-lint
 ;;; Code:
 (defvar crito-ruby-packages
   '(ruby-tools

@@ -35,10 +35,21 @@
 ;; Install all packages.
 (crito-install-packages crito-markdown-packages)
 
-(add-hook 'markdown-mode-hook 'pandoc-mode)
-
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+
+;; Github flavored markdown has a few slight differences. Most README
+;; files will be written in GFM though.
+(add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode))
+
+(defun crito-markdown-mode-defaults ()
+  "Default markdown hook."
+  (pandoc-mode)
+  ;; M-p is bound to markdown-previous-link for markdown-mode. I unset
+  ;; it for now, because it clashes with a global key binding.
+  (local-unset-key "\M-p"))
+
+(add-hook 'markdown-mode-hook 'crito-markdown-mode-defaults)
 
 (provide 'crito-markdown)
 

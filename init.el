@@ -59,15 +59,16 @@
       '(crito-functions
         crito-packages
         crito-ui
+        crito-bindings
         crito-editor
         crito-programming
         crito-text
         crito-web-dev
         crito-markdown
         crito-haskell
+        crito-ruby
         crito-shell
-        crito-snippets
-        crito-bindings)
+        crito-snippets)
       "List all modules we want to start.")
 
 (dolist (module crito-all-modules)

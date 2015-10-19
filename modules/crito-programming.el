@@ -23,7 +23,8 @@
 ;; Visit <http://www.gnu.org/copyleft/gpl.html> for more information.
 
 ;;; Commentary:
-
+;; For the YAML flychecker install js-yaml.
+;;   npm install -g js-yaml
 ;;; Code:
 
 (require 'crito-packages)
@@ -130,9 +131,13 @@ This functions should be added to the hooks of major modes for programming."
   (company-mode)
   (rainbow-mode)
   (rainbow-delimiters-mode)
-  (smartparens-global-mode))
+  (smartparens-mode))
 
 (add-hook 'prog-mode-hook 'crito-prog-mode-defaults)
+
+;; yaml-mode is not derived from prog-mode.
+;; (add-hook 'yaml-mode-hook 'crito-prog-mode-defaults)
+(add-hook 'yaml-mode-hook '(lambda () (crito-prog-mode-defaults)))
 
 (provide 'crito-programming)
 

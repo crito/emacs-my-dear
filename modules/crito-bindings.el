@@ -25,6 +25,7 @@
 ;;; Commentary:
 
 ;;; Code:
+(require 'smartrep)
 
 ;; use hippie-expand instead of dabbrev
 (global-set-key (kbd "M-/") 'hippie-expand)
@@ -36,12 +37,13 @@
 (global-set-key (kbd "M-0") 'delete-window) ; was digit-argument
 (global-set-key (kbd "M-o") 'other-window) ; was facemenu-keymap
 
-;; Smarter 'beginning of line'.
-(global-set-key (kbd "C-a") 'crito-move-beginning-of-line)
+;; Map some handy functions.
+(global-set-key (kbd "C-a") 'prelude-move-beginning-of-line)
+(global-set-key (kbd "C-c r") 'prelude-rename-buffer-and-file)
+(global-set-key (kbd "C-c d") 'prelude-delete-file-and-buffer)
 
 ;; join lines, as in vim.
 (global-set-key (kbd "C-M-j") 'join-line)
-(global-set-key (kbd "C-:") 'goto-line)
 
 ;; Rebind newline-and-indent
 (global-set-key (kbd "RET") 'newline-and-indent)
@@ -51,14 +53,32 @@
 
 ;; C-j is normally bound to `newline-and-indent`. Let's use it for ace jump
 ;; mode instead.
-(global-set-key (kbd "C-j") 'ace-jump-mode)
+;; (global-set-key (kbd "C-j") 'ace-jump-mode)
+;; (global-set-key (kbd "C-j l") 'ace-jump-line-mode)
+;; (global-set-key (kbd "C-j c") 'ace-jump-char-mode)
+(smartrep-define-key global-map "M-g"
+  '(("g" . goto-line)
+    ("j" . ace-jump-mode)
+    ("l" . ace-jump-line-mode)
+    ("c" . ace-jump-char-mode)))
 
 ;; Helm
+(smartrep-define-key global-map "C-c e"
+  '(("f" . helm-find-files)
+    ("y" . helm-show-kill-ring)
+    ("b" . helm-mini)
+    ("x" . helm-M-x)
+    ("p" . helm-browse-project)
+    ("s" . helm-ag-project-root)
+    ("m" . helm-all-mark-rings)
+    ("d" . helm-descbinds)))
+
+;; I keep some helm shortcuts as duplicates, they are either shorter
+;; or standard.
 (global-set-key (kbd "M-x") 'helm-M-x)
 (global-set-key (kbd "C-x C-f") 'helm-find-files)
 (global-set-key (kbd "M-y") 'helm-show-kill-ring)
 (global-set-key (kbd "C-x b") 'helm-mini)
-(global-set-key (kbd "C-c m") 'helm-all-mark-rings)
 
 ;; expand-region
 (global-set-key (kbd "C-=") 'er/expand-region)
@@ -74,9 +94,6 @@
 ;; Anzu
 (global-set-key (kbd "M-%") 'anzu-query-replace)
 (global-set-key (kbd "C-M-%") 'anzu-query-replace-regexp)
-
-;; The silver searcher
-(global-set-key (kbd "C-c C-s") 'helm-ag-project-root)
 
 ;; Shortcuts for operate on number.
 (smartrep-define-key global-map "C-c ."

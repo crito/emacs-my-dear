@@ -40,6 +40,8 @@
     fastnav
     git-gutter
     helm
+    helm-descbinds
+    helm-ls-git
     operate-on-number
     projectile
     rainbow-delimiters
@@ -142,6 +144,9 @@
 
 ;; Helm
 (require 'helm)
+(require 'helm-descbinds)
+(require 'helm-ls-git)
+
 (setq
  helm-google-suggest-use-curl-p t
  helm-scroll-amount 4 ; scroll 4 lines other window using M-<next>/M-<prior>
@@ -160,9 +165,15 @@
  helm-move-to-line-cycle-in-source t ; move to end or beginning of source
                                         ; when reaching top or bottom of source.
  ido-use-virtual-buffers t      ; Needed in helm-buffers-list
- helm-buffers-fuzzy-matching t          ; fuzzy matching buffer names when non--nil
-                                        ; useful in helm-mini that lists buffers
- )
+ helm-mode-fuzzy-match t          ; fuzzy matching buffer names when non--nil
+                                        ; useful in helm-mini that
+                                        ; lists buffers
+ helm-completion-in-region-fuzzy-match t)
+
+(helm-descbinds-mode)
+(helm-autoresize-mode)
+(setq helm-autoresize-max-height 60)
+(setq helm-autoresize-min-height 40)
 
 ;; use helm to list eshell history
 (add-hook 'eshell-mode-hook
@@ -189,7 +200,9 @@
 
 ;; projectile is a project management mode
 (require 'projectile)
+(require 'grizzl)
 (setq projectile-cache-file (expand-file-name  "projectile.cache" dotfiles-dir))
+(setq projectile-completion-system 'grizzl)
 (projectile-global-mode t)
 
 ;; tramp for sudo and remote access

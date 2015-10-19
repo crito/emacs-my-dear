@@ -27,7 +27,7 @@
 
 ;;; Code:
 (require 'package)
-(require 'cl)
+(require 'cl-lib)
 
 (defun crito-require-package (pkg)
   "Install PKG only if it's not already installed."
@@ -40,8 +40,8 @@
     (crito-require-package pkg)))
 
 (defun crito-packages-installed-p (pkgs)
-  "Check if all PKGS are installed"
-  (every #'package-installed-p pkgs))
+  "Check if all PKGS are installed."
+  (cl-every #'package-installed-p pkgs))
 
 (defun crito-install-packages (pkgs)
   "Install all PKGS."
