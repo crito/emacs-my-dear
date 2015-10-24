@@ -110,23 +110,6 @@ This functions should be added to the hooks of major modes for programming."
    nil '(("\\<\\(\\(FIX\\(ME\\)?\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
           1 font-lock-warning-face t))))
 
-;; Taken from
-;; https://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tricks/chldury
-;; Make window splitting bit more useful,
-(defun vsplit-last-buffer ()
-  "Split the window vertically and switch to next buffer."
-  (interactive)
-  (split-window-vertically)
-  (other-window 1 nil)
-  (switch-to-next-buffer))
-
-(defun hsplit-last-buffer ()
-  "Split the window horizontally and switch to next buffer."
-  (interactive)
-  (split-window-horizontally)
-  (other-window 1 nil)
-  (switch-to-next-buffer))
-
 ;; Taken from https://github.com/waymondo/hemacs
 (defun turn-on-comint-history (history-file)
   "Write comint history into HISTORY-FILE."
@@ -154,7 +137,59 @@ This functions should be added to the hooks of major modes for programming."
     (cl-flet ((buffer-list () matching-buffers))
       (try-expand-dabbrev-all-buffers old))))
 
+(defun find-file-maybe-make-directories (filename &optional wildcards)
+  (unless (file-exists-p filename)
+    (let ((dir (file-name-directory filename)))
+      (unless (file-exists-p dir)
+        (make-directory dir :make-parents)))))
+
+;; Take from
+;; https://www.masteringemacs.org/article/fixing-mark-commands-transient-mark-mode.
+(defun push-mark-no-activate ()
+  "Pushes `point' to `mark-ring' and does not activate the region.
+Equivalent to \\[set-mark-command] when \\[transient-mark-mode] is disabled"
+  (interactive)
+  (push-mark (point) t nil)
+  (message "Pushed mark to ring"))
+
+(defun jump-to-mark ()
+  "Jumps to the local mark, respecting the `mark-ring' order.
+This is the same as using \\[set-mark-command] with the prefix argument."
+  (interactive)
+  (set-mark-command 1))
+
+(defun exchange-point-and-mark-no-activate ()
+  "Identical to \\[exchange-point-and-mark] but will not activate the region."
+  (interactive)
+  (exchange-point-and-mark)
+  (deactivate-mark nil))
+
 ;; And finally my own functions and macros.
+;; Make window splitting bit more useful,
+(defun vsplit-same-buffer ()
+  "Split the window vertically and switch to it."
+  (interactive)
+  (split-window-vertically)
+  (other-window 1 nil))
+
+(defun vsplit-last-buffer ()
+  "Split the window vertically and switch to next buffer."
+  (interactive)
+  (vsplit-same-buffer)
+  (switch-to-next-buffer))
+
+(defun hsplit-same-buffer ()
+  "Split the window horizontally and switch to it."
+  (interactive)
+  (split-window-horizontally)
+  (other-window 1 nil))
+
+(defun hsplit-last-buffer ()
+  "Split the window horizontally and switch to next buffer."
+  (interactive)
+  (hsplit-same-buffer)
+  (switch-to-next-buffer))
+
 (defun auto-fill-comments ()
   "Auto fill comments."
   (set (make-local-variable 'comment-auto-fill-only-comments) +1)
@@ -164,6 +199,11 @@ This functions should be added to the hooks of major modes for programming."
   "If PROGRAM-NAME executable is found apply FN."
   (when (executable-find program-name)
     (funcall fn)))
+
+(defun minor-mode-p (mode)
+  "Test if the minor mode MODE is enabled."
+  (cl-letf ((predicate (lambda (m) (string= mode m))))
+    (cl-some predicate minor-mode-list)))
 
 (provide 'helpers)
 

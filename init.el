@@ -100,7 +100,7 @@
 (defvar indent-sensitive-modes
   '(coffee-mode slim-mode python-mode))
 (defvar progish-modes
-  '(prog-mode css-mode sgml-mode))
+  '(prog-mode css-mode))
 (defvar lispy-modes '(emacs-lisp-mode
                       clojure-mode
                       racket-mode
@@ -117,7 +117,8 @@
 (use-package use-package-chords
   :ensure t)
 
-(use-package smartrep :ensure t)
+(use-package smartrep
+  :ensure t)
 
 ;; Read custom.el before the vars below.
 (use-package cus-edit
@@ -192,6 +193,10 @@
       (hook-λ hook
         (guru-mode))))
 
+(use-package winner-mode
+  :config
+  (winner-mode))
+
 (use-package hi-lock
   :ensure t
   :bind
@@ -215,12 +220,34 @@
   (prefer-coding-system 'utf-8)
   (load-library "iso-transl"))
 
-(use-package delete-selection :defer t :init (delete-selection-mode t))
+;; Use EasyPG for ~/.authinfo.gpg and other encrypted files.
+(use-package epa-file
+  :config
+  (epa-file-enable))
+
+(use-package delete-selection
+  :init (delete-selection-mode t))
+
+(use-package recentf
+  :config
+  (recentf-mode)
+  (setq recentf-max-saved-items 1000))
 
 (use-package files
-  :init (setq backup-directory-alist '((".*" . "~/.emacs.d/bak/"))))
+  :defer t
+  :config
+  (advice-add 'find-file :before #'find-file-maybe-make-directories)
+  (setq require-final-newline t
+        confirm-kill-emacs nil
+        confirm-nonexistent-file-or-buffer nil
+        backup-directory-alist `((".*" . ,temporary-file-directory))
+        auto-save-file-name-transforms `((".*" ,temporary-file-directory t))))
 
 (use-package simple
+  :bind
+  ("M-`" . jump-to-mark)
+  ([remap set-mark-command] . push-mark-no-activate)
+  ([remap exchange-point-and-mark] . exchange-point-and-mark-no-activate)
   :config
   (column-number-mode)
   (line-number-mode)
@@ -228,8 +255,22 @@
   (auto-save-mode -1)
   (add-hook 'text-mode-hook #'auto-fill-mode))
 
-(use-package auto-revert :defer t :config (global-auto-revert-mode))
+(use-package auto-revert
+  :config
+  (global-auto-revert-mode)
+  (setq global-auto-revert-non-file-buffers t))
 
+(use-package "window"
+  :config
+  (smartrep-define-key global-map "C-x"
+    '(("{" . shrink-window-horizontally)
+      ("}" . enlarge-window-horizontally))))
+
+;; Sometimes handy to visualize what I'm doing.
+(use-package command-log-mode
+  :ensure t)
+
+;; Pretty smart expanding.
 (use-package hippie-expand
   :bind
   ([remap dabbrev-expand] . hippie-expand)
@@ -250,6 +291,11 @@
                 (append '(try-complete-lisp-symbol-partially
                           try-complete-lisp-symbol)
                         hippie-expand-try-functions-list))))
+
+;; Saner regex syntax
+(use-package re-builder
+  :init
+  (setq reb-re-syntax 'string))
 
 ;; ace products
 (use-package ace-window
@@ -297,22 +343,36 @@
 ;; Remember your location in a file when saving it.
 (use-package saveplace
   :init
-  (setq-default save-place t)
-  (setq save-place-file (expand-file-name "saveplace" dotfiles-dir)))
+  (setq save-place-file (expand-file-name "saveplace" dotfiles-dir))
+  (save-place-mode))
 
 ;; Keep track of mini buffer history.
 (use-package savehist
-  :init
-  (setq savehist-additional-variables '(search ring regexp-search-ring)
+  :config
+  (setq savehist-additional-variables '(search-ring
+                                        regexp-search-ring
+                                        comint-input-ring)
         savehist-autosave-interval 60
         savehist-file (expand-file-name "savehist" dotfiles-dir))
-  :config
   (savehist-mode))
 
 ;; Handle camel case more gracefully.
 (use-package subword
   :init
   (global-subword-mode))
+
+;; smarter newline.
+(use-package smart-newline
+  :ensure t
+  :config
+  (hook-modes progish-modes
+    (when (not (member major-mode indent-sensitive-modes))
+      (smart-newline-mode))))
+
+;; Toggle "/' quotes.
+(use-package toggle-quotes
+  :ensure t
+  :bind ("C-'" . toggle-quotes))
 
 ;; Abbreviations.
 (use-package abbrev
@@ -471,7 +531,9 @@
   :bind
   (([remap isearch-forward]  . swiper)
    ([remap isearch-backward] . swiper)
-   ("C-c C-r" . ivy-resume)))
+   ("C-c C-r" . ivy-resume))
+  :config
+  (advice-add 'swiper :after #'recenter-top-bottom))
 
 ;; easy-kill/easy-mark
 (use-package easy-kill
@@ -614,8 +676,8 @@
         sp-autoskip-closing-pair 'always
         sp-hybrid-kill-entire-symbol nil)
   :config
+  (use-package smartparens-config)
   (hook-λ 'prog-mode-hook
-    (require 'smartparens-config)
     (sp-use-paredit-bindings)
     (show-smartparens-mode)
     (smartparens-mode)))
@@ -667,6 +729,8 @@
 
 ;; Snippets
 (use-package yasnippet
+  :mode
+  (("\\.snippet$" . snippet-mode))
   :init
   (setq yas-snippet-dirs (expand-file-name "snippets" dotfiles-dir)
         yas-indent-line nil)
@@ -682,18 +746,32 @@
   :defer t
   :config
   (fci-mode)
+  (yas-minor-mode-on)
   (auto-fill-comments)
   (global-prettify-symbols-mode)
   (prelude-font-lock-comment-annotations))
 
+;; Maintain a REST calls in a text file
+(use-package restclient
+  :ensure t
+  :mode
+  (("\\.restclient$" . restclient-mode)))
+
 ;;; Programming language specifics
-;; Shell scripting
+;; Shell scripting.
 (use-package sh-script
   :mode (("\\.zsh$" . shell-script-mode)
          ("\\.rc$" . shell-script-mode)
          ("^\\.aliases$" . shell-script-mode)
          ("^\\.bash_profile$" . shell-script-mode)
          ("^\\.bashrc$" . shell-script-mode))
+  :config
+  (setq-default sh-indentation 2
+                sh-basic-offset 2))
+
+;; Files with a shebang #! at the beginning.
+(use-package executable
+  :defer t
   :config
   (add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p))
 
@@ -781,14 +859,19 @@
   (hook-λ 'minibuffer-setup-hook
     (set (make-local-variable 'input-method-function) nil)))
 
+(use-package which-key
+  :ensure t
+  :config
+    (which-key-mode))
+
 (bind-keys
- ;; ("M-3" . split-window-horizontally)
- ;; ("M-2" . split-window-vertically)
- ("M-3" . hsplit-last-buffer)
- ("M-2" . vsplit-last-buffer)
- ("M-1" . delete-other-windows)
+ ("M-o" . other-window) 
  ("M-0" . delete-window)
- ("M-o" . other-window)
+ ("M-1" . delete-other-windows)
+ ("M-2" . vsplit-last-buffer)
+ ("M-3" . hsplit-last-buffer)
+ ("C-x 2" . vsplit-same-buffer)
+ ("C-x 3" . hsplit-same-buffer)
  ("C-M-j" . join-line)
  ("RET" . newline-and-indent)
  ("C-a" . prelude-move-beginning-of-line)

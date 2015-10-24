@@ -8,3 +8,5 @@ saveplace
 tramp
 projectile.cache
 recentf
+custom.el
+%backup%~
