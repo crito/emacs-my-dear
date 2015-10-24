@@ -25,27 +25,19 @@
 ;;; Commentary:
 
 ;;; Code:
-(defmacro hook-up (hook &rest body)
-  "Shorten declaration of HOOK byr adding BODY to it."
+(require 'dash)
+(require 'cl-lib)
+
+(defmacro hook-λ (hook &rest body)
+  "Shorten declaration of HOOK by adding BODY to it."
   (declare (indent 1) (debug t))
   `(add-hook ,hook (lambda () ,@body)))
 
-(defun packages-installed-p (pkgs)
-  "Check if all PKGS are installed."
-  (dolist (pkg pkgs)
-    (package-installed-p pkg)))
-
-(defun install-packages (pkgs)
-  "Install all PKGS."
-  (unless (packages-installed-p pkgs)
-    (message "Emacs is refreshing it's package database ...")
-    (package-refresh-contents)
-    
-    ;; install the missing packages.
-    (dolist (pkg pkgs)
-      (unless (package-installed-p pkg)
-        (message "==> Bootstrapping %s ..." pkg)
-        (package-install pkg)))))
+(defmacro hook-modes (modes &rest body)
+  "Add to a list of MODES the hook BODY."
+  (declare (indent 1) (debug t))
+  `(dolist (mode ,modes)
+          (hook-λ (intern (format "%s-hook" mode)) ,@body)))
 
 (defmacro make-transform-symbol-at-point-defun (func)
   "Not sure how FUNC gets transformed in this macro.
@@ -111,7 +103,6 @@ point reaches the beginning or end of the buffer, stop there."
           (message "Deleted file %s" filename)
           (kill-buffer))))))
 
-;; Take from prelude.
 (defun prelude-font-lock-comment-annotations ()
   "Highlight a bunch of well known comment annotations.
 This functions should be added to the hooks of major modes for programming."
@@ -119,6 +110,51 @@ This functions should be added to the hooks of major modes for programming."
    nil '(("\\<\\(\\(FIX\\(ME\\)?\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
           1 font-lock-warning-face t))))
 
+;; Taken from
+;; https://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tricks/chldury
+;; Make window splitting bit more useful,
+(defun vsplit-last-buffer ()
+  "Split the window vertically and switch to next buffer."
+  (interactive)
+  (split-window-vertically)
+  (other-window 1 nil)
+  (switch-to-next-buffer))
+
+(defun hsplit-last-buffer ()
+  "Split the window horizontally and switch to next buffer."
+  (interactive)
+  (split-window-horizontally)
+  (other-window 1 nil)
+  (switch-to-next-buffer))
+
+;; Taken from https://github.com/waymondo/hemacs
+(defun turn-on-comint-history (history-file)
+  "Write comint history into HISTORY-FILE."
+  (setq comint-input-ring-file-name history-file)
+  (comint-read-input-ring 'silent))
+
+(defun hippie-expand-case-sensitive (orig-fun &rest args)
+  "Disable case sensitive search before calling ORIG-FUN with ARGS."
+  (let ((case-fold-search nil))
+    (apply orig-fun args)))
+
+(defun try-expand-dabbrev-matching-buffers (old)
+  "Expand OLD from all buffers with the same major mode."
+  (let ((matching-buffers (--filter
+                           (eq major-mode (with-current-buffer it major-mode))
+                           (buffer-list))))
+    (cl-flet ((buffer-list () matching-buffers))
+      (try-expand-dabbrev-all-buffers old))))
+
+(defun try-expand-dabbrev-other-buffers (old)
+  "Expand OLD from all buffers that have not the same major mode."
+  (let ((matching-buffers (--reject
+                           (eq major-mode (with-current-buffer it major-mode))
+                           (buffer-list))))
+    (cl-flet ((buffer-list () matching-buffers))
+      (try-expand-dabbrev-all-buffers old))))
+
+;; And finally my own functions and macros.
 (defun auto-fill-comments ()
   "Auto fill comments."
   (set (make-local-variable 'comment-auto-fill-only-comments) +1)

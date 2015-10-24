@@ -38,6 +38,23 @@
         (add-to-list 'load-path dir)
         (add-subfolders-to-load-path dir)))))
 
+(defun packages-installed-p (pkgs)
+  "Check if all PKGS are installed."
+  (dolist (pkg pkgs)
+    (package-installed-p pkg)))
+
+(defun install-packages (pkgs)
+  "Install all PKGS."
+  (unless (packages-installed-p pkgs)
+    (message "Emacs is refreshing it's package database ...")
+    (package-refresh-contents)
+    
+    ;; install the missing packages.
+    (dolist (pkg pkgs)
+      (unless (package-installed-p pkg)
+        (message "==> Bootstrapping %s ..." pkg)
+        (package-install pkg)))))
+
 ;; Configure various directory locations.
 (defvar dotfiles-dir (file-name-directory load-file-name)
   "The root directory of the Emacs configuration.")
@@ -47,10 +64,8 @@
   "Write backup files to this directory.")
 
 ;; Add to the load path.
-;;(add-to-list 'load-path (expand-file-name "site-lisp" dotfiles-dir))
 (add-subfolders-to-load-path site-lisp-dir)
 
-(require 'helpers)
 (require 'package)
 
 (defvar bootstrap-packages
@@ -63,33 +78,44 @@
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
 
 (package-initialize)
-(unless (packages-installed-p bootstrap-packages)
-  (package-refresh-contents)
-  (install-packages bootstrap-packages))
+(install-packages bootstrap-packages)
 
 (eval-when-compile
   (require 'use-package)
   (require 'diminish)
   (require 'bind-key))
 
-(setq load-prefer-newer t      ; Always load newest byte code.
-      require-final-newline t  ; Newline at the end of a file
-      next-line-add-newlines t ; `C-n` inserts newlines if the point is at the
-                               ; end of the buffer
-      blink-matching-paren 'jump ; Jump to the opening parent when closing it.
-      )
+(setq load-prefer-newer t
+      require-final-newline t
+      blink-matching-paren 'jump)
 
-(setq-default indent-tabs-mode nil  ; Don't use tabs to indent
-              tab-width 8           ; but maintain correct appearance
-              fill-column 78        ; line wrapping
-              indicate-empty-line t ; show the end of the buffer
+(setq-default indent-tabs-mode nil
+              tab-width 8
+              fill-column 78
+              indicate-empty-line t
               cursor-type 'bar
               cursor-in-non-selected-windows nil
-              bidi-display-reordering nil
-              )
+              bidi-display-reordering nil)
 
-;; (use-package helpers
-;;   :load-path "site-lisp/")
+(defvar indent-sensitive-modes
+  '(coffee-mode slim-mode python-mode))
+(defvar progish-modes
+  '(prog-mode css-mode sgml-mode))
+(defvar lispy-modes '(emacs-lisp-mode
+                      clojure-mode
+                      racket-mode
+                      ielm-mode
+                      eval-expression-minibuffer-setup))
+(defvar ruby-modes
+  '(ruby-mode slim-mode inf-ruby-mode))
+(defvar shellish-modes
+  '(comint-mode compilation-mode magit-process-mode))
+(defvar writing-modes
+  '(org-mode markdown-mode text-mode))
+
+;; Alternative ways to issue commands to emacs.
+(use-package use-package-chords
+  :ensure t)
 
 (use-package smartrep :ensure t)
 
@@ -114,9 +140,15 @@
     (exec-path-from-shell-copy-env var)))
 
 ;;; Basic libraries
-(use-package dash :ensure t :config (dash-enable-font-lock))
+(use-package dash
+  :ensure t
+  :config (dash-enable-font-lock))
 
-(use-package cl-lib :ensure t)
+(use-package cl-lib
+  :ensure t)
+
+;; The helpers rely on dash and cl-lib.
+(require 'helpers)
 
 (use-package s
   :ensure t
@@ -151,19 +183,14 @@
 
 (use-package menu-bar :defer t :config (menu-bar-mode -1))
 
-(use-package line-number :defer t :config (line-number-mode))
-
-(use-package column-number :defer t :config (column-number-mode))
-
-(use-package size-indication :defer t :config (size-indication-mode))
-
 (use-package novice :defer t :init (setq disabled-command-function nil))
 
 ;; Let's be hard on ourselves ...
 (use-package guru-mode
-  :ensure t
   :config
-  (guru-mode))
+  (dolist (hook '(prog-mode-hook text-mode-hook))
+      (hook-λ hook
+        (guru-mode))))
 
 (use-package hi-lock
   :ensure t
@@ -172,13 +199,14 @@
    ("M-o r" . highlight-regexp)
    ("M-o w" . highlight-phrase)))
 
-(use-package fringe :defer t :config (fringe-mode 4))
+(use-package fringe
+  :config (fringe-mode 4))
 
-(use-package zenburn-theme :ensure t :init (load-theme 'zenburn t))
+(use-package zenburn-theme
+  :ensure t
+  :init (load-theme 'zenburn t))
 
 ;;; Configure the editor
-(use-package smartrep)
-
 (use-package utf-8-support
   :defer t
   :config
@@ -190,39 +218,71 @@
 (use-package delete-selection :defer t :init (delete-selection-mode t))
 
 (use-package files
-  :init (setq backup-directory-alist '((".*" . 'backup-dir))))
+  :init (setq backup-directory-alist '((".*" . "~/.emacs.d/bak/"))))
 
 (use-package simple
   :config
+  (column-number-mode)
+  (line-number-mode)
+  (size-indication-mode)
   (auto-save-mode -1)
   (add-hook 'text-mode-hook #'auto-fill-mode))
 
 (use-package auto-revert :defer t :config (global-auto-revert-mode))
 
 (use-package hippie-expand
-  :defer t
   :bind
-  ("M-/" . hippie-expand)
-  :init
-  (setq hippie-expand-try-functions-list '(try-expand-dabbrev
-                                           try-expand-dabbrev-all-buffers
-                                           try-expand-dabbrev-from-kill
+  ([remap dabbrev-expand] . hippie-expand)
+  :config
+  (advice-add 'hippie-expand :around #'hippie-expand-case-sensitive)
+  (bind-key "TAB" #'hippie-expand read-expression-map)
+  (bind-key "TAB" #'hippie-expand minibuffer-local-map)
+  (bind-key* "M-?" (make-hippie-expand-function '(try-expand-line) t))
+  (setq hippie-expand-verbose nil
+        hippie-expand-try-functions-list '(try-expand-dabbrev-visible
+                                           try-expand-dabbrev
+                                           try-expand-dabbrev-matching-buffers
                                            try-complete-file-name-partially
                                            try-complete-file-name
-                                           try-expand-all-abbrevs
-                                           try-expand-list
-                                           try-expand-line
-                                           try-complete-lisp-symbol-partially
-                                           try-complete-lisp-symbol)))
+                                           try-expand-dabbrev-other-buffers))
+  (hook-modes lispy-modes
+    (setq-local hippie-expand-try-functions-list
+                (append '(try-complete-lisp-symbol-partially
+                          try-complete-lisp-symbol)
+                        hippie-expand-try-functions-list))))
 
 ;; ace products
-(use-package ace-window :ensure t :bind ("M-p" . ace-window))
+(use-package ace-window
+  :ensure t
+  :bind ("M-p" . ace-window))
+
+(use-package ace-jump-buffer
+  :ensure t
+  :chords ((";a" . ace-jump-buffer)
+           (":A" . ace-jump-buffer-other-window)
+           (";x" . ace-jump-shellish-buffers))
+  :config
+  (make-ace-jump-buffer-function "shellish"
+    (with-current-buffer buffer
+      (not (derived-mode-p 'comint-mode))))
+  (setq ajb-home-row-keys t))
+
 (use-package ace-jump-mode
+  :demand t
   :ensure t
   :bind
-  (("M-g j" . ace-jump-mode)
-   ("M-g c" . ace-jump-char-mode)
-   ("M-g l" . ace-jump-line-mode)))
+  ;; (("M-g j" . ace-jump-mode)
+  ;;  ("M-g c" . ace-jump-char-mode)
+  ;;  ("M-g l" . ace-jump-line-mode))
+  ("C-;" . ace-jump-mode)
+  :chords
+  (("jj" . ace-jump-char-mode)
+   ("jk" . ace-jump-word-mode)
+   ("jl" . ace-jump-line-mode))
+  :config
+  (ace-jump-mode-enable-mark-sync)
+  (setq ace-jump-mode-case-fold nil
+        ace-jump-mode-scope 'visible))
 
 ;; Set meaningful names for buffers with the same name.
 (use-package uniquify
@@ -249,6 +309,11 @@
   :config
   (savehist-mode))
 
+;; Handle camel case more gracefully.
+(use-package subword
+  :init
+  (global-subword-mode))
+
 ;; Abbreviations.
 (use-package abbrev
   :init
@@ -270,6 +335,9 @@
    ("C-c h x" . helm-M-x)
    ("C-c h p" . helm-browse-project)
    ("C-c h m" . helm-all-mark-rings))
+  :chords
+  ((";f" . helm-find-files)
+   (";b" . helm-mini))
   :init
   (setq helm-net-prefer-curl t
         ; scroll 4 lines other window using M-<next>/M-<prior>.
@@ -330,7 +398,14 @@
   :bind
   ("C-c h s" . helm-ag-project-root))
 
-(use-package helm-ls-git :ensure t)
+(use-package helm-ls-git
+  :ensure t
+  :bind
+  ("C-c h g" . helm-ls-git-ls))
+
+;; Find file at point
+(use-package ffap
+  :chords (":F" . ffap))
 
 ;; Set the spell checker
 (use-package flyspell
@@ -338,9 +413,8 @@
   (setq ispell-program-name "aspell"
         ispell-extra-args '("--sug-mode=ultra"))
   :config
-  (dolist (hook '(prog-mode-hook text-mode-hook))
-      (hook-up hook
-        (when-program-exists ispell-program-name #'flyspell-prog-mode))))
+  (hook-λ 'text-mode-hook #'flyspell-mode)
+  (hook-λ 'prog-mode-hook #'flyspell-prog-mode))
 
 ;; Semantically expand a region.
 (use-package expand-region
@@ -360,26 +434,44 @@
 
 (use-package projectile
   :ensure t
+  :chords (";t" . projectile-find-file)
   :init
   (setq projectile-cache-file (expand-file-name "projectile.cache"
                                                 dotfiles-dir)
         projectile-completion-system 'grizzl)
   :config
-  (projectile-global-mode))
+  (use-package projectile-rails
+    :ensure t
+    :config
+    (add-hook 'projectile-mode-hook #'projectile-rails-on))
+  
+  (projectile-global-mode)
+  (projectile-cleanup-known-projects))
 
 ;; Tramp for sudo or ssh access.
 (use-package tramp
   :init
   (setq tramp-default-method "ssh"))
 
-;; anzu enhances isearch by showing total matches and current match position
+;; anzu enhances query-replace by showing total matches and position matches.
 (use-package anzu
   :diminish anzu-mode
   :bind
-  (("M-%" . anzu-query-replace)
-   ("C-M-%" . anzu-query-replace-regexp))
+  (([remap query-replace] . anzu-query-replace)
+   ("C-M-%" . anzu-query-replace-regexp)
+   ("C-c a" . anzu-replace-at-cursor-thing))
+  :chords
+  ((";a" . anzu-replace-at-cursor-thing))
   :config
   (global-anzu-mode))
+
+;; Overview while searching for a regex.
+(use-package swiper
+  :ensure t
+  :bind
+  (([remap isearch-forward]  . swiper)
+   ([remap isearch-backward] . swiper)
+   ("C-c C-r" . ivy-resume)))
 
 ;; easy-kill/easy-mark
 (use-package easy-kill
@@ -414,14 +506,18 @@
 (use-package undo-tree
   :ensure t
   :diminish undo-tree-mode
+  :bind
+  (("C--" . undo-tree-undo)
+   ("C-+" . undo-tree-redo))
   :config
   (global-undo-tree-mode))
 
-;; Highlight uncommitted changes.
-(use-package diff-hl
-  :ensure t
-  :config
-  (global-diff-hl-mode))
+;;(use-package newcomment
+  ;;:bind
+  ;;("C-/" . comment-or-uncomment-region)
+  ;;:config
+  ;;(advice-add 'comment-or-uncomment-region :before #'with-region-or-line)
+  ;;)
 
 ;; Indicate the 80 columns limit.
 (use-package fill-column-indicator
@@ -429,9 +525,8 @@
   :init
   (setq fci-rule-character-color "#262626"
         fci-rule-column 80
-        fci-always-use-textual-rule t)
-  :config
-  (fci-mode))
+        fci-always-use-textual-rule t))
+  
 
 ;; Always show the git gutter
 (use-package git-gutter
@@ -457,28 +552,47 @@
 
 ;; Shortcuts to operate on number at point.
 (use-package operate-on-number
- :config
- (smartrep-define-key global-map "C-c ."
-   '(("+" . apply-operation-to-number-at-point)
-     ("-" . apply-operation-to-number-at-point)
-     ("*" . apply-operation-to-number-at-point)
-     ("/" . apply-operation-to-number-at-point)
-     ("\\" . apply-operation-to-number-at-point)
-     ("^" . apply-operation-to-number-at-point)
-     ("<" . apply-operation-to-number-at-point)
-     (">" . apply-operation-to-number-at-point)
-     ("#" . apply-operation-to-number-at-point)
-     ("%" . apply-operation-to-number-at-point)
-     ("'" . operate-on-number-at-point))))
+  :config
+  (smartrep-define-key global-map "C-c ."
+    '(("+" . apply-operation-to-number-at-point)
+      ("-" . apply-operation-to-number-at-point)
+      ("*" . apply-operation-to-number-at-point)
+      ("/" . apply-operation-to-number-at-point)
+      ("\\" . apply-operation-to-number-at-point)
+      ("^" . apply-operation-to-number-at-point)
+      ("<" . apply-operation-to-number-at-point)
+      (">" . apply-operation-to-number-at-point)
+      ("#" . apply-operation-to-number-at-point)
+      ("%" . apply-operation-to-number-at-point)
+      ("'" . operate-on-number-at-point))))
+
+(use-package ag
+  :ensure t
+  :config
+  (setq ag-reuse-buffers t
+        ag-highlight-search t))
 
 ;;; Mail
 (use-package post
   :mode ("/tmp/mutt.*$" . post-mode))
 
-;; (use-package "mail"
-;;   :config
-;;   (hook-up 'mail-mode-hook
-;;     (auto-fill-mode)))
+;;; Text modes
+(use-package pandoc-mode
+  :ensure t
+  :bind
+  (("C-c C-e p" . pandoc-convert-to-pdf)))
+
+(use-package markdown-mode
+  :ensure t
+  :mode
+  (("\\.markdown$" . markdown-mode)
+   ("\\.md$" . markdown-mode)
+   ("^README\\.md$" . gfm-mode))
+  :config
+  (hook-λ 'markdown-mode-hook
+    (when-program-exists "pandoc" #'pandoc-mode)
+    ; M-p is bound to markdown-previous-link.
+    (local-unset-key "\M-p")))
 
 ;;; Programming modes
 ;; Lucy
@@ -500,7 +614,7 @@
         sp-autoskip-closing-pair 'always
         sp-hybrid-kill-entire-symbol nil)
   :config
-  (hook-up 'prog-mode-hook
+  (hook-λ 'prog-mode-hook
     (require 'smartparens-config)
     (sp-use-paredit-bindings)
     (show-smartparens-mode)
@@ -510,7 +624,7 @@
 (use-package flycheck
   :ensure t
   :config
-  (hook-up 'prog-mode-hook'
+  (hook-λ 'prog-mode-hook'
     (set-face-background 'flycheck-error "#660000")
     (set-face-foreground 'flycheck-error nil)
     (set-face-background 'flycheck-warning "#775500")
@@ -520,44 +634,66 @@
 (use-package flycheck-pos-tip
   :ensure t
   :config
-  (hook-up 'flycheck-mode-hook
+  (hook-λ 'flycheck-mode-hook
     (setq flycheck-display-errors-function #'flycheck-pos-tip-error-messages)))
 
 ;; Autocomplete.
 (use-package company
   :ensure t
-  :init
+  :config
+  (global-company-mode)
   (setq company-idle-delay 0.5
+        company-tooltip-align-annotations t
+        company-require-match nil
+        company-show-numbers t
         company-tooltip-limit 10
         company-minimum-prefix-length 3
-        company-tooltip-flip-when-above t)
-  :config
-  (hook-up 'prog-mode-hook
-    (company-mode)))
+        company-tooltip-flip-when-above t
+        company-occurrence-weight-function #'company-occurrence-prefer-any-closest
+        company-continue-commands
+        (append company-continue-commands '(comint-previous-matching-input-from-input
+                                            comint-next-matching-input-from-input)))
+  (use-package company-dabbrev
+    :config
+    (setq company-dabbrev-minimum-length 3))
+  (use-package company-dabbrev-code
+    :config
+    (setq company-dabbrev-code-modes t
+          company-dabbrev-code-everywhere t))
+  (use-package readline-complete
+    :ensure t
+    :config
+    (push #'company-readline company-backends)))
 
 ;; Snippets
 (use-package yasnippet
-  :bind
-  (("<tab>" . nil)
-   ("TAB" . nill)
-   ("M-TAB" . yas-expand))
   :init
   (setq yas-snippet-dirs (expand-file-name "snippets" dotfiles-dir)
         yas-indent-line nil)
   :config
+  (bind-keys :map yas-minor-mode-map
+             ("<tab>" . nil)
+             ("TAB" . nil)
+             ("M-TAB" . yas-expand))
   (yas-global-mode))
 
 ;; Some common prog mode stuff
-(use-package "prog-mode"
+(use-package prog-mode
+  :defer t
   :config
-  (hook-up 'prog-mode-hook
-    (auto-fill-comments)
-    (prelude-font-lock-comment-annotations)))
+  (fci-mode)
+  (auto-fill-comments)
+  (global-prettify-symbols-mode)
+  (prelude-font-lock-comment-annotations))
 
 ;;; Programming language specifics
 ;; Shell scripting
 (use-package sh-script
-  :mode "\\.zsh$"
+  :mode (("\\.zsh$" . shell-script-mode)
+         ("\\.rc$" . shell-script-mode)
+         ("^\\.aliases$" . shell-script-mode)
+         ("^\\.bash_profile$" . shell-script-mode)
+         ("^\\.bashrc$" . shell-script-mode))
   :config
   (add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p))
 
@@ -582,6 +718,54 @@
   (add-to-list 'web-mode-comment-formats '("jsx" . "//"))
   (flycheck-add-mode 'javascript-eslint 'web-mode))
 
+;; Coffee-script
+(use-package coffee-mode
+  :mode "\\.coffee\\.*"
+  :ensure t
+  :config
+  (setq coffee-args-repl '("-i" "--nodejs"))
+  (add-to-list 'coffee-args-compile "--no-header")
+  (bind-keys :map coffee-mode-map
+             ("<C-return>" . coffee-smarter-newline)
+             ("C-c C-c" . coffee-compile-region)))
+
+;; Slim
+(use-package slim-mode
+  :ensure t
+  :config
+  (setq slim-backspace-backdents-nesting nil)
+  (hook-λ 'slim-mode-hook (modify-syntax-entry ?\= "."))
+  (bind-keys :map slim-mode-map
+             ("<C-return>" . slim-newline-dwim)))
+
+;; Ruby
+(use-package ruby-mode
+  :mode
+  (("\\.rake$" . ruby-mode)
+   ("^Gemfile[\\.lock]*$" . ruby-mode))
+  :config
+  (bind-keys :map ruby-mode-map
+             (":"          . smart-ruby-colon)
+             ("<C-return>" . ruby-newline-dwim))
+  (use-package ruby-tools :ensure t)
+  (use-package rspec-mode :ensure t)
+  (use-package inf-ruby
+    :ensure t
+    :init
+    (hook-λ 'inf-ruby-mode-hook
+      (turn-on-comint-history ".pry_history"))
+    (bind-key "M-TAB" #'comint-previous-matching-input-from-input inf-ruby-mode-map)
+    (bind-key "<M-S-tab>" #'comint-next-matching-input-from-input inf-ruby-mode-map))
+  (use-package bundler
+    :ensure t
+    :config
+    (bind-key "G" #'bundle-open projectile-rails-command-map))
+  (use-package ruby-hash-syntax
+    :ensure t
+    :init
+    (bind-key "C-c C-:" #'ruby-toggle-hash-syntax ruby-mode-map)))
+
+
 ;; Racket
 (use-package racket-mode
   :config
@@ -589,9 +773,19 @@
     (add-hook 'racket-mode-hook 'racket-unicode-input-method-enable)))
 
 ;;; Global keybindings
+(use-package key-chord
+  :defer t
+  :config
+  (key-chord-mode 1)
+  (setq key-chord-two-keys-delay 0.1)
+  (hook-λ 'minibuffer-setup-hook
+    (set (make-local-variable 'input-method-function) nil)))
+
 (bind-keys
- ("M-3" . split-window-horizontally)
- ("M-2" . split-window-vertically)
+ ;; ("M-3" . split-window-horizontally)
+ ;; ("M-2" . split-window-vertically)
+ ("M-3" . hsplit-last-buffer)
+ ("M-2" . vsplit-last-buffer)
  ("M-1" . delete-other-windows)
  ("M-0" . delete-window)
  ("M-o" . other-window)
