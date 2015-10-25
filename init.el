@@ -74,8 +74,7 @@
     bind-key)
   "Those packages are required from bootstrap on.")
 
-(add-to-list 'package-archives
-             '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
 
 (package-initialize)
 (install-packages bootstrap-packages)
@@ -149,7 +148,8 @@
   :ensure t)
 
 ;; The helpers rely on dash and cl-lib.
-(require 'helpers)
+(use-package helpers
+  :load-path "site-lisp/misc")
 
 (use-package s
   :ensure t
@@ -193,7 +193,8 @@
       (hook-λ hook
         (guru-mode))))
 
-(use-package winner-mode
+(use-package winner
+  :ensure t
   :config
   (winner-mode))
 
@@ -225,8 +226,9 @@
   :config
   (epa-file-enable))
 
-(use-package delete-selection
-  :init (delete-selection-mode t))
+(use-package delsel
+  :config
+  (delete-selection-mode))
 
 (use-package recentf
   :config
@@ -253,9 +255,14 @@
   (line-number-mode)
   (size-indication-mode)
   (auto-save-mode -1)
-  (add-hook 'text-mode-hook #'auto-fill-mode))
+  (advice-add 'jump-to-mark :after #'recenter-top-bottom)
+  (add-hook 'text-mode-hook #'auto-fill-mode)
+  (hook-λ 'prog-mode-hook
+    (auto-fill-comments)
+    (global-prettify-symbols-mode)
+    (prelude-font-lock-comment-annotations)))
 
-(use-package auto-revert
+(use-package autorevert
   :config
   (global-auto-revert-mode)
   (setq global-auto-revert-non-file-buffers t))
@@ -300,7 +307,7 @@
 ;; ace products
 (use-package ace-window
   :ensure t
-  :bind ("M-p" . ace-window))
+  :bind ("M-o" . ace-window))
 
 (use-package ace-jump-buffer
   :ensure t
@@ -343,8 +350,8 @@
 ;; Remember your location in a file when saving it.
 (use-package saveplace
   :init
-  (setq save-place-file (expand-file-name "saveplace" dotfiles-dir))
-  (save-place-mode))
+  (setq save-place-file (expand-file-name "saveplace" dotfiles-dir)
+        save-place t))
 
 ;; Keep track of mini buffer history.
 (use-package savehist
@@ -372,7 +379,7 @@
 ;; Toggle "/' quotes.
 (use-package toggle-quotes
   :ensure t
-  :bind ("C-'" . toggle-quotes))
+  :bind ("C-c q" . toggle-quotes))
 
 ;; Abbreviations.
 (use-package abbrev
@@ -473,8 +480,8 @@
   (setq ispell-program-name "aspell"
         ispell-extra-args '("--sug-mode=ultra"))
   :config
-  (hook-λ 'text-mode-hook #'flyspell-mode)
-  (hook-λ 'prog-mode-hook #'flyspell-prog-mode))
+  (add-hook 'text-mode-hook #'flyspell-mode)
+  (add-hook 'prog-mode-hook #'flyspell-prog-mode))
 
 ;; Semantically expand a region.
 (use-package expand-region
@@ -584,20 +591,21 @@
 ;; Indicate the 80 columns limit.
 (use-package fill-column-indicator
   :ensure t
-  :init
+  :config
   (setq fci-rule-character-color "#262626"
         fci-rule-column 80
-        fci-always-use-textual-rule t))
-  
+        fci-always-use-textual-rule t)
+  (hook-λ 'prog-mode-hook (fci-mode 1)))
 
 ;; Always show the git gutter
 (use-package git-gutter
   :ensure t
-  :init
-  (setq git-gutter:update-interval 2
-        git-gutter:ask-p nil)
+  :diminish git-gutter-mode
   :config
   (global-git-gutter-mode)
+  (custom-set-variables
+   '(git-gutter:update-interval 2)
+   '(git-gutter:unchanged-sign " "))
   (smartrep-define-key global-map "C-c g"
     '(("n" . git-gutter:next-hunk)
       ("p" . git-gutter:previous-hunk)
@@ -652,9 +660,7 @@
    ("^README\\.md$" . gfm-mode))
   :config
   (hook-λ 'markdown-mode-hook
-    (when-program-exists "pandoc" #'pandoc-mode)
-    ; M-p is bound to markdown-previous-link.
-    (local-unset-key "\M-p")))
+    (when-program-exists "pandoc" #'pandoc-mode)))
 
 ;;; Programming modes
 ;; Lucy
@@ -686,7 +692,7 @@
 (use-package flycheck
   :ensure t
   :config
-  (hook-λ 'prog-mode-hook'
+  (hook-λ 'prog-mode-hook
     (set-face-background 'flycheck-error "#660000")
     (set-face-foreground 'flycheck-error nil)
     (set-face-background 'flycheck-warning "#775500")
@@ -727,29 +733,24 @@
     :config
     (push #'company-readline company-backends)))
 
+;; FIXME: Can't get yasnippet to run.
 ;; Snippets
-(use-package yasnippet
-  :mode
-  (("\\.snippet$" . snippet-mode))
-  :init
-  (setq yas-snippet-dirs (expand-file-name "snippets" dotfiles-dir)
-        yas-indent-line nil)
-  :config
-  (bind-keys :map yas-minor-mode-map
-             ("<tab>" . nil)
-             ("TAB" . nil)
-             ("M-TAB" . yas-expand))
-  (yas-global-mode))
-
-;; Some common prog mode stuff
-(use-package prog-mode
-  :defer t
-  :config
-  (fci-mode)
-  (yas-minor-mode-on)
-  (auto-fill-comments)
-  (global-prettify-symbols-mode)
-  (prelude-font-lock-comment-annotations))
+;; (use-package yasnippet
+;;   :ensure t
+;;   :mode
+;;   (("\\.snippet$" . snippet-mode))
+;;   :config
+;;   (setq yas-snippet-dirs (expand-file-name "snippets" dotfiles-dir)
+;;         yas-indent-line nil)
+;;   (hook-λ 'prog-mode-hook
+;;     (bind-keys :map yas-minor-mode-map
+;;                ("<tab>" . nil)
+;;                ("TAB" . nil)
+;;                ("M-TAB" . yas-expand))
+;;     (yas-minor-mode 1))
+  
+;;   ;;(yas-global-mode 1)
+;;   )
 
 ;; Maintain a REST calls in a text file
 (use-package restclient
@@ -784,14 +785,13 @@
          ("\\.json$" . web-mode)
          ("\\.css$" . web-mode)
          ("\\.html$" . web-mode))
-  :init
+  :config
   (setq web-mode-markup-indent-offset 2
         web-mode-css-indent-offset 2
         web-mode-code-indent-offset 2
         web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
   (add-to-list 'flycheck-disabled-checkers 'javascript-jshint)
   (add-to-list 'flycheck-disabled-checkers 'json-jsonlist)
-  :config
   (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
   (add-to-list 'web-mode-comment-formats '("jsx" . "//"))
   (flycheck-add-mode 'javascript-eslint 'web-mode))
@@ -862,10 +862,9 @@
 (use-package which-key
   :ensure t
   :config
-    (which-key-mode))
+  (which-key-mode))
 
 (bind-keys
- ("M-o" . other-window) 
  ("M-0" . delete-window)
  ("M-1" . delete-other-windows)
  ("M-2" . vsplit-last-buffer)
