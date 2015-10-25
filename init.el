@@ -48,7 +48,7 @@
   (unless (packages-installed-p pkgs)
     (message "Emacs is refreshing it's package database ...")
     (package-refresh-contents)
-    
+
     ;; install the missing packages.
     (dolist (pkg pkgs)
       (unless (package-installed-p pkg)
@@ -74,7 +74,8 @@
     bind-key)
   "Those packages are required from bootstrap on.")
 
-(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives
+             '("melpa" . "http://melpa.milkbox.net/packages/") t)
 
 (package-initialize)
 (install-packages bootstrap-packages)
@@ -114,10 +115,10 @@
 
 ;; Alternative ways to issue commands to emacs.
 (use-package use-package-chords
-  :ensure t)
+  :ensure)
 
 (use-package smartrep
-  :ensure t)
+  :ensure)
 
 ;; Read custom.el before the vars below.
 (use-package cus-edit
@@ -133,7 +134,7 @@
   "Environment variables to load from shell.")
 
 (use-package exec-path-from-shell
-  :ensure t
+  :ensure
   :config
   (exec-path-from-shell-initialize)
   (dolist (var env-vars-from-shell)
@@ -141,18 +142,19 @@
 
 ;;; Basic libraries
 (use-package dash
-  :ensure t
-  :config (dash-enable-font-lock))
+  :ensure
+  :config
+  (dash-enable-font-lock))
 
 (use-package cl-lib
-  :ensure t)
+  :ensure)
 
 ;; The helpers rely on dash and cl-lib.
 (use-package helpers
   :load-path "site-lisp/misc")
 
 (use-package s
-  :ensure t
+  :ensure
   :commands
   (s-lower-camel-case s-upper-camel-case s-snake-case s-dashed-words)
   :config
@@ -162,59 +164,74 @@
   (make-transform-symbol-at-point-defun s-dashed-words))
 
 ;;; UI elements
-(use-package "subr" :init (defalias 'yes-or-no-p #'y-or-n-p))
+(use-package "subr"
+  :init
+  (defalias 'yes-or-no-p #'y-or-n-p))
 
 (use-package startup
-  :defer t
+  :defer
   :init
   (setq inhibit-startup-screen t
         initial-scratch-message nil
         inhibit-startup-echo-area-message ""))
 
 (use-package scrolling
-  :defer t
+  :defer
   :init
   (setq scroll-margin 0
         scroll-conservatively 100000
         scroll-preserve-screen-position 1))
 
-(use-package tool-bar :defer t :config (tool-bar-mode -1))
+(use-package tool-bar
+  :defer
+  :config
+  (tool-bar-mode -1))
 
-(use-package scroll-bar :defer t :config (scroll-bar-mode -1))
+(use-package scroll-bar
+  :defer
+  :config
+  (scroll-bar-mode -1))
 
-(use-package menu-bar :defer t :config (menu-bar-mode -1))
+(use-package menu-bar
+  :defer
+  :config
+  (menu-bar-mode -1))
 
-(use-package novice :defer t :init (setq disabled-command-function nil))
+(use-package novice
+  :defer
+  :init (setq disabled-command-function nil))
 
 ;; Let's be hard on ourselves ...
 (use-package guru-mode
+  :ensure
   :config
   (dolist (hook '(prog-mode-hook text-mode-hook))
       (hook-λ hook
         (guru-mode))))
 
 (use-package winner
-  :ensure t
+  :ensure
   :config
   (winner-mode))
 
 (use-package hi-lock
-  :ensure t
-  :bind
-  (("M-o l" . highlight-lines-matching-regexp)
-   ("M-o r" . highlight-regexp)
-   ("M-o w" . highlight-phrase)))
+  :ensure
+  :bind (("M-o l" . highlight-lines-matching-regexp)
+         ("M-o r" . highlight-regexp)
+         ("M-o w" . highlight-phrase)))
 
 (use-package fringe
-  :config (fringe-mode 4))
+  :config
+  (fringe-mode 4))
 
 (use-package zenburn-theme
-  :ensure t
-  :init (load-theme 'zenburn t))
+  :ensure
+  :init
+  (load-theme 'zenburn t))
 
 ;;; Configure the editor
 (use-package utf-8-support
-  :defer t
+  :defer
   :config
   (set-terminal-coding-system 'utf-8)
   (set-keyboard-coding-system 'utf-8)
@@ -236,20 +253,20 @@
   (setq recentf-max-saved-items 1000))
 
 (use-package files
-  :defer t
+  :defer
   :config
-  (advice-add 'find-file :before #'find-file-maybe-make-directories)
   (setq require-final-newline t
         confirm-kill-emacs nil
         confirm-nonexistent-file-or-buffer nil
         backup-directory-alist `((".*" . ,temporary-file-directory))
-        auto-save-file-name-transforms `((".*" ,temporary-file-directory t))))
+        auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
+  (advice-add 'helm-find-file :before #'find-file-maybe-make-directories)
+  (add-hook 'before-save-hook #'delete-trailing-whitespace))
 
 (use-package simple
-  :bind
-  ("M-`" . jump-to-mark)
-  ([remap set-mark-command] . push-mark-no-activate)
-  ([remap exchange-point-and-mark] . exchange-point-and-mark-no-activate)
+  :bind (("M-`" . jump-to-mark)
+         ([remap set-mark-command] . push-mark-no-activate)
+         ([remap exchange-point-and-mark] . exchange-point-and-mark-no-activate))
   :config
   (column-number-mode)
   (line-number-mode)
@@ -275,17 +292,16 @@
 
 ;; Sometimes handy to visualize what I'm doing.
 (use-package command-log-mode
-  :ensure t)
+  :ensure)
 
 ;; Pretty smart expanding.
 (use-package hippie-expand
-  :bind
-  ([remap dabbrev-expand] . hippie-expand)
+  :bind (([remap dabbrev-expand] . hippie-expand))
   :config
   (advice-add 'hippie-expand :around #'hippie-expand-case-sensitive)
-  (bind-key "TAB" #'hippie-expand read-expression-map)
-  (bind-key "TAB" #'hippie-expand minibuffer-local-map)
-  (bind-key* "M-?" (make-hippie-expand-function '(try-expand-line) t))
+  ;; (bind-key "TAB" #'hippie-expand read-expression-map)
+  ;; (bind-key "TAB" #'hippie-expand minibuffer-local-map)
+  ;; (bind-key* "M-?" (make-hippie-expand-function '(try-expand-line) t))
   (setq hippie-expand-verbose nil
         hippie-expand-try-functions-list '(try-expand-dabbrev-visible
                                            try-expand-dabbrev
@@ -306,11 +322,11 @@
 
 ;; ace products
 (use-package ace-window
-  :ensure t
+  :ensure
   :bind ("M-o" . ace-window))
 
 (use-package ace-jump-buffer
-  :ensure t
+  :ensure
   :chords ((";a" . ace-jump-buffer)
            (":A" . ace-jump-buffer-other-window)
            (";x" . ace-jump-shellish-buffers))
@@ -321,17 +337,12 @@
   (setq ajb-home-row-keys t))
 
 (use-package ace-jump-mode
-  :demand t
-  :ensure t
-  :bind
-  ;; (("M-g j" . ace-jump-mode)
-  ;;  ("M-g c" . ace-jump-char-mode)
-  ;;  ("M-g l" . ace-jump-line-mode))
-  ("C-;" . ace-jump-mode)
-  :chords
-  (("jj" . ace-jump-char-mode)
-   ("jk" . ace-jump-word-mode)
-   ("jl" . ace-jump-line-mode))
+  :demand
+  :ensure
+  :bind (("C-;" . ace-jump-mode))
+  :chords (("jj" . ace-jump-char-mode)
+           ("jk" . ace-jump-word-mode)
+           ("jl" . ace-jump-line-mode))
   :config
   (ace-jump-mode-enable-mark-sync)
   (setq ace-jump-mode-case-fold nil
@@ -370,7 +381,7 @@
 
 ;; smarter newline.
 (use-package smart-newline
-  :ensure t
+  :ensure
   :config
   (hook-modes progish-modes
     (when (not (member major-mode indent-sensitive-modes))
@@ -378,7 +389,7 @@
 
 ;; Toggle "/' quotes.
 (use-package toggle-quotes
-  :ensure t
+  :ensure
   :bind ("C-c q" . toggle-quotes))
 
 ;; Abbreviations.
@@ -390,21 +401,18 @@
 
 ;; Use Helm to navigate the minibuffer
 (use-package helm
-  :ensure t
-  :bind
-  (("M-x" . helm-M-x)
-   ("C-x C-f" . helm-find-files)
-   ("M-y" . helm-show-kill-ring)
-   ("C-x b" . helm-mini)
-   ("C-c h f" . helm-find-files)
-   ("C-c h y" . helm-show-kill-ring)
-   ("C-c h b" . helm-mini)
-   ("C-c h x" . helm-M-x)
-   ("C-c h p" . helm-browse-project)
-   ("C-c h m" . helm-all-mark-rings))
-  :chords
-  ((";f" . helm-find-files)
-   (";b" . helm-mini))
+  :ensure
+  :demand
+  :bind (("M-x" . helm-M-x)
+         ("C-x C-f" . helm-find-files)
+         ("M-y" . helm-show-kill-ring)
+         ("C-x b" . helm-mini)
+         ("C-c h f" . helm-find-files)
+         ("C-c h y" . helm-show-kill-ring)
+         ("C-c h b" . helm-mini)
+         ("C-c h x" . helm-M-x)
+         ("C-c h p" . helm-browse-project)
+         ("C-c h m" . helm-all-mark-rings))
   :init
   (setq helm-net-prefer-curl t
         ; scroll 4 lines other window using M-<next>/M-<prior>.
@@ -454,25 +462,23 @@
   (add-hook 'helm-goto-line-before-hook 'helm-save-current-pos-to-mark-ring))
 
 (use-package helm-descbinds
-  :ensure t
-  :bind
-  ("C-c h d" . helm-descbinds)
+  :ensure
+  :bind (("C-c h d" . helm-descbinds))
   :config
   (helm-descbinds-mode))
 
 (use-package helm-ag
-  :ensure t
-  :bind
-  ("C-c h s" . helm-ag-project-root))
+  :ensure
+  :bind (("C-c h s" . helm-ag-project-root)))
 
 (use-package helm-ls-git
-  :ensure t
-  :bind
-  ("C-c h g" . helm-ls-git-ls))
+  :ensure
+  :bind (("C-c h g" . helm-ls-git-ls)))
 
-;; Find file at point
-(use-package ffap
-  :chords (":F" . ffap))
+(use-package helm-projectile
+  :ensure
+  :demand
+  :bind (("C-c h p" . helm-projectile)))
 
 ;; Set the spell checker
 (use-package flyspell
@@ -485,33 +491,31 @@
 
 ;; Semantically expand a region.
 (use-package expand-region
-  :ensure t
-  :bind
-  ("C-=" . er/expand-region))
+  :ensure
+  :bind (("C-=" . er/expand-region)))
 
 ;; bookmark
 (use-package bookmark
-  :defer t
+  :defer
   :init
   (setq bookmark-default-file (expand-file-name "bookmarks" dotfiles-dir)
         bookmark-save-flag 1))
 
 ;; Projectile project management
-(use-package grizzl :ensure t)
-
 (use-package projectile
-  :ensure t
-  :chords (";t" . projectile-find-file)
+  :ensure
+  :bind (([remap projectile-switch-project] . helm-projectile)
+         ([remap projectile-find-file] . helm-projectile-find-file-dwim)
+         ([remap projectile-switch-to-buffer] . helm-projectile-switch-to-buffer))
   :init
   (setq projectile-cache-file (expand-file-name "projectile.cache"
-                                                dotfiles-dir)
-        projectile-completion-system 'grizzl)
+                                                dotfiles-dir))
   :config
   (use-package projectile-rails
-    :ensure t
+    :ensure
     :config
     (add-hook 'projectile-mode-hook #'projectile-rails-on))
-  
+
   (projectile-global-mode)
   (projectile-cleanup-known-projects))
 
@@ -522,31 +526,29 @@
 
 ;; anzu enhances query-replace by showing total matches and position matches.
 (use-package anzu
+  :ensure
+  :demand
   :diminish anzu-mode
-  :bind
-  (([remap query-replace] . anzu-query-replace)
-   ("C-M-%" . anzu-query-replace-regexp)
-   ("C-c a" . anzu-replace-at-cursor-thing))
-  :chords
-  ((";a" . anzu-replace-at-cursor-thing))
+  :bind (([remap query-replace] . anzu-query-replace)
+         ("C-M-%" . anzu-query-replace-regexp)
+         ("C-c a" . anzu-replace-at-cursor-thing))
   :config
   (global-anzu-mode))
 
 ;; Overview while searching for a regex.
 (use-package swiper
-  :ensure t
-  :bind
-  (([remap isearch-forward]  . swiper)
-   ([remap isearch-backward] . swiper)
-   ("C-c C-r" . ivy-resume))
+  :ensure
+  :bind (([remap isearch-forward]  . swiper)
+         ([remap isearch-backward] . swiper)
+         ("C-c C-r" . ivy-resume))
   :config
   (advice-add 'swiper :after #'recenter-top-bottom))
 
 ;; easy-kill/easy-mark
 (use-package easy-kill
-  :bind
-  (([remap kill-ring-save] . easy-kill)
-   ([remap mark-sexp] . easy-mark)))
+  :ensure
+  :bind (([remap kill-ring-save] . easy-kill)
+         ([remap mark-sexp] . easy-mark)))
 
 ;; ediff
 (use-package ediff
@@ -555,29 +557,29 @@
 
 ;; Smarter kill-ring navigation
 (use-package browse-kill-ring
-  :bind
-  ("C-M-y" . browse-kill-ring)
+  :ensure
+  :bind (("C-M-y" . browse-kill-ring))
   :init
   (setq browse-kill-ring-highlight-current-entry t
         browse-kill-ring-highlight-inserted-item 'solid))
 
 ;; Highlight current line.
-(use-package hl-line :config (global-hl-line-mode))
+(use-package hl-line
+  :config (global-hl-line-mode))
 
 ;; volatile highlights
 (use-package volatile-highlights
-  :ensure t
+  :ensure
   :diminish volatile-highlights-mode
   :config
   (volatile-highlights-mode))
 
 ;; sensible undo
 (use-package undo-tree
-  :ensure t
+  :ensure
   :diminish undo-tree-mode
-  :bind
-  (("C--" . undo-tree-undo)
-   ("C-+" . undo-tree-redo))
+  :bind (("C--" . undo-tree-undo)
+         ("C-+" . undo-tree-redo))
   :config
   (global-undo-tree-mode))
 
@@ -590,7 +592,7 @@
 
 ;; Indicate the 80 columns limit.
 (use-package fill-column-indicator
-  :ensure t
+  :ensure
   :config
   (setq fci-rule-character-color "#262626"
         fci-rule-column 80
@@ -599,7 +601,7 @@
 
 ;; Always show the git gutter
 (use-package git-gutter
-  :ensure t
+  :ensure
   :diminish git-gutter-mode
   :config
   (global-git-gutter-mode)
@@ -615,13 +617,13 @@
 
 ;; Fastnav, operate on the next/previous nth character.
 (use-package fastnav
-   :ensure t
-   :bind
-   (("M-z" . fastnav-zap-up-to-char-forward)
-    ("C-M-Z" . fastnav-zap-up-to-char-backward)))
+   :ensure
+   :bind (("M-z" . fastnav-zap-up-to-char-forward)
+          ("C-M-Z" . fastnav-zap-up-to-char-backward)))
 
 ;; Shortcuts to operate on number at point.
 (use-package operate-on-number
+  :ensure
   :config
   (smartrep-define-key global-map "C-c ."
     '(("+" . apply-operation-to-number-at-point)
@@ -637,27 +639,26 @@
       ("'" . operate-on-number-at-point))))
 
 (use-package ag
-  :ensure t
+  :ensure
   :config
   (setq ag-reuse-buffers t
         ag-highlight-search t))
 
 ;;; Mail
 (use-package post
-  :mode ("/tmp/mutt.*$" . post-mode))
+  :load-path "site-lisp/mail"
+  :mode (("/tmp/mutt.*$" . post-mode)))
 
 ;;; Text modes
 (use-package pandoc-mode
-  :ensure t
-  :bind
-  (("C-c C-e p" . pandoc-convert-to-pdf)))
+  :ensure
+  :bind (("C-c C-e p" . pandoc-convert-to-pdf)))
 
 (use-package markdown-mode
-  :ensure t
-  :mode
-  (("\\.markdown$" . markdown-mode)
-   ("\\.md$" . markdown-mode)
-   ("^README\\.md$" . gfm-mode))
+  :ensure
+  :mode (("\\.markdown$" . markdown-mode)
+         ("\\.md$" . markdown-mode)
+         ("^README\\.md$" . gfm-mode))
   :config
   (hook-λ 'markdown-mode-hook
     (when-program-exists "pandoc" #'pandoc-mode)))
@@ -665,18 +666,19 @@
 ;;; Programming modes
 ;; Lucy
 (use-package rainbow-mode
-  :ensure t
+  :ensure
   :diminish rainbow-mode
   :config
   (add-hook 'prog-mode-hook #'rainbow-mode))
 
 (use-package rainbow-delimiters
-  :ensure t
+  :ensure
   :config
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
 ;; Smart pairing.
 (use-package smartparens
+  :ensure
   :init
   (setq sp-base-key-bindings 'paredit
         sp-autoskip-closing-pair 'always
@@ -690,7 +692,7 @@
 
 ;; Code checking.
 (use-package flycheck
-  :ensure t
+  :ensure
   :config
   (hook-λ 'prog-mode-hook
     (set-face-background 'flycheck-error "#660000")
@@ -700,14 +702,14 @@
     (flycheck-mode)))
 
 (use-package flycheck-pos-tip
-  :ensure t
+  :ensure
   :config
   (hook-λ 'flycheck-mode-hook
     (setq flycheck-display-errors-function #'flycheck-pos-tip-error-messages)))
 
 ;; Autocomplete.
 (use-package company
-  :ensure t
+  :ensure
   :config
   (global-company-mode)
   (setq company-idle-delay 0.5
@@ -729,14 +731,14 @@
     (setq company-dabbrev-code-modes t
           company-dabbrev-code-everywhere t))
   (use-package readline-complete
-    :ensure t
+    :ensure
     :config
     (push #'company-readline company-backends)))
 
 ;; FIXME: Can't get yasnippet to run.
 ;; Snippets
 ;; (use-package yasnippet
-;;   :ensure t
+;;   :ensure
 ;;   :mode
 ;;   (("\\.snippet$" . snippet-mode))
 ;;   :config
@@ -748,15 +750,14 @@
 ;;                ("TAB" . nil)
 ;;                ("M-TAB" . yas-expand))
 ;;     (yas-minor-mode 1))
-  
+
 ;;   ;;(yas-global-mode 1)
 ;;   )
 
 ;; Maintain a REST calls in a text file
 (use-package restclient
-  :ensure t
-  :mode
-  (("\\.restclient$" . restclient-mode)))
+  :ensure
+  :mode (("\\.restclient$" . restclient-mode)))
 
 ;;; Programming language specifics
 ;; Shell scripting.
@@ -772,15 +773,17 @@
 
 ;; Files with a shebang #! at the beginning.
 (use-package executable
-  :defer t
+  :defer
   :config
   (add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p))
 
 ;; Web-mode/JSON/Javascript
-(use-package js2-mode :ensure t)
-(use-package json-mode :ensure t)
+(use-package js2-mode
+  :ensure)
+(use-package json-mode
+  :ensure)
 (use-package web-mode
-  :ensure t
+  :ensure
   :mode (("\\.js[x]?\\'" . web-mode)
          ("\\.json$" . web-mode)
          ("\\.css$" . web-mode)
@@ -798,61 +801,67 @@
 
 ;; Coffee-script
 (use-package coffee-mode
-  :mode "\\.coffee\\.*"
-  :ensure t
+  :ensure
+  :mode (("\\.coffee\\.*" . coffee-mode))
   :config
   (setq coffee-args-repl '("-i" "--nodejs"))
   (add-to-list 'coffee-args-compile "--no-header")
-  (bind-keys :map coffee-mode-map
-             ("<C-return>" . coffee-smarter-newline)
-             ("C-c C-c" . coffee-compile-region)))
+  ;; (bind-keys :map coffee-mode-map
+  ;;            ("<C-return>" . coffee-smarter-newline)
+  ;;            ("C-c C-c" . coffee-compile-region))
+  )
 
 ;; Slim
 (use-package slim-mode
-  :ensure t
+  :ensure
   :config
   (setq slim-backspace-backdents-nesting nil)
   (hook-λ 'slim-mode-hook (modify-syntax-entry ?\= "."))
-  (bind-keys :map slim-mode-map
-             ("<C-return>" . slim-newline-dwim)))
+  ;; (bind-keys :map slim-mode-map
+  ;;            ("<C-return>" . slim-newline-dwim))
+  )
 
 ;; Ruby
 (use-package ruby-mode
-  :mode
-  (("\\.rake$" . ruby-mode)
-   ("^Gemfile[\\.lock]*$" . ruby-mode))
+  :ensure
+  :mode (("\\.rake$" . ruby-mode)
+         ("^Gemfile[\\.lock]*$" . ruby-mode))
   :config
-  (bind-keys :map ruby-mode-map
-             (":"          . smart-ruby-colon)
-             ("<C-return>" . ruby-newline-dwim))
-  (use-package ruby-tools :ensure t)
-  (use-package rspec-mode :ensure t)
+  ;; (bind-keys :map ruby-mode-map
+  ;;            (":"          . smart-ruby-colon)
+  ;;            ("<C-return>" . ruby-newline-dwim))
+  (use-package ruby-tools :ensure)
+  (use-package rspec-mode :ensure)
   (use-package inf-ruby
-    :ensure t
+    :ensure
     :init
     (hook-λ 'inf-ruby-mode-hook
       (turn-on-comint-history ".pry_history"))
-    (bind-key "M-TAB" #'comint-previous-matching-input-from-input inf-ruby-mode-map)
-    (bind-key "<M-S-tab>" #'comint-next-matching-input-from-input inf-ruby-mode-map))
+    ;; (bind-key "M-TAB" #'comint-previous-matching-input-from-input inf-ruby-mode-map)
+    ;; (bind-key "<M-S-tab>" #'comint-next-matching-input-from-input inf-ruby-mode-map)
+    )
   (use-package bundler
-    :ensure t
-    :config
-    (bind-key "G" #'bundle-open projectile-rails-command-map))
+    :ensure
+    ;;:config
+    ;; (bind-key "G" #'bundle-open projectile-rails-command-map)
+    )
   (use-package ruby-hash-syntax
-    :ensure t
-    :init
-    (bind-key "C-c C-:" #'ruby-toggle-hash-syntax ruby-mode-map)))
+    :ensure
+    ;;:init
+    ;; (bind-key "C-c C-:" #'ruby-toggle-hash-syntax ruby-mode-map)
+    ))
 
 
 ;; Racket
 (use-package racket-mode
+  :ensure
   :config
   (dolist (hook '(racket-mode-hook racket-repl-mode-hook))
     (add-hook 'racket-mode-hook 'racket-unicode-input-method-enable)))
 
 ;;; Global keybindings
 (use-package key-chord
-  :defer t
+  :defer
   :config
   (key-chord-mode 1)
   (setq key-chord-two-keys-delay 0.1)
@@ -860,7 +869,7 @@
     (set (make-local-variable 'input-method-function) nil)))
 
 (use-package which-key
-  :ensure t
+  :ensure
   :config
   (which-key-mode))
 
