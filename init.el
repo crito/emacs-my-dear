@@ -87,7 +87,8 @@
 
 (setq load-prefer-newer t
       require-final-newline t
-      blink-matching-paren 'jump)
+      blink-matching-paren 'jump
+      temporary-file-directory "~/.emacs.d/tmp")
 
 (setq-default indent-tabs-mode nil
               tab-width 8
@@ -253,13 +254,13 @@
   (setq recentf-max-saved-items 1000))
 
 (use-package files
-  :defer
   :config
   (setq require-final-newline t
         confirm-kill-emacs nil
         confirm-nonexistent-file-or-buffer nil
-        backup-directory-alist `((".*" . ,temporary-file-directory))
-        auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
+        create-lockfiles nil
+        auto-save-file-name-transforms '((".*" "~/.emacs.d/autosaves/\\1" t))
+        backup-directory-alist '((".*" . "~/.emacs.d/backups/")))
   (advice-add 'helm-find-file :before #'find-file-maybe-make-directories)
   (add-hook 'before-save-hook #'delete-trailing-whitespace))
 
@@ -868,7 +869,7 @@
   :ensure
   :config
   (dolist (hook '(racket-mode-hook racket-repl-mode-hook))
-    (add-hook 'racket-mode-hook 'racket-unicode-input-method-enable)))
+    (add-hook 'hook 'racket-unicode-input-method-enable)))
 
 ;; Various languages
 (defvar programming-languages-alist

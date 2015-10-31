@@ -1,6 +1,8 @@
 elpa
+tmp
 auto-save-list
-bak
+backups
+autosaves
 projectile-bookmarks.eld
 places
 savehist
