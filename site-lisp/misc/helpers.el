@@ -205,6 +205,13 @@ This is the same as using \\[set-mark-command] with the prefix argument."
   (cl-letf ((predicate (lambda (m) (string= mode m))))
     (cl-some predicate minor-mode-list)))
 
+(defun coffee-compile-region-or-buffer ()
+  "Compile either a region or buffer of coffee-script into javascript."
+  (interactive)
+  (if (use-region-p)
+      (coffee-compile-region (region-beginning) (region-end))
+    (coffee-compile-buffer)))
+
 (provide 'helpers)
 
 ;;; helpers.el ends here

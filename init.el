@@ -272,7 +272,7 @@
   (line-number-mode)
   (size-indication-mode)
   (auto-save-mode -1)
-  (advice-add 'jump-to-mark :after #'recenter-top-bottom)
+  ;; (advice-add 'jump-to-mark :after #'recenter-top-bottom)
   (add-hook 'text-mode-hook #'auto-fill-mode)
   (hook-λ 'prog-mode-hook
     (auto-fill-comments)
@@ -411,9 +411,8 @@
          ("C-c h y" . helm-show-kill-ring)
          ("C-c h b" . helm-mini)
          ("C-c h x" . helm-M-x)
-         ("C-c h p" . helm-browse-project)
          ("C-c h m" . helm-all-mark-rings))
-  :init
+  :config
   (setq helm-net-prefer-curl t
         ; scroll 4 lines other window using M-<next>/M-<prior>.
         helm-scroll-amount 4
@@ -456,29 +455,29 @@
         ; configure the size of the helm windows
         helm-autoresize-max-height 60
         helm-autoresize-min-height 40)
-  :config
   (helm-autoresize-mode)
+
+  (use-package helm-descbinds
+    :ensure
+    :bind (("C-c h d" . helm-descbinds))
+    :config
+    (helm-descbinds-mode))
+
+  (use-package helm-ag
+    :ensure
+    :bind (("C-c h s" . helm-ag-project-root)))
+
+  (use-package helm-ls-git
+    :ensure
+    :bind (("C-c h g" . helm-ls-git-ls)))
+
+  (use-package helm-projectile
+    :ensure
+    :demand
+    :bind (("C-c h p" . helm-projectile)))
+
   ; save current position to mark ring.
   (add-hook 'helm-goto-line-before-hook 'helm-save-current-pos-to-mark-ring))
-
-(use-package helm-descbinds
-  :ensure
-  :bind (("C-c h d" . helm-descbinds))
-  :config
-  (helm-descbinds-mode))
-
-(use-package helm-ag
-  :ensure
-  :bind (("C-c h s" . helm-ag-project-root)))
-
-(use-package helm-ls-git
-  :ensure
-  :bind (("C-c h g" . helm-ls-git-ls)))
-
-(use-package helm-projectile
-  :ensure
-  :demand
-  :bind (("C-c h p" . helm-projectile)))
 
 ;; Set the spell checker
 (use-package flyspell
@@ -504,7 +503,7 @@
 ;; Projectile project management
 (use-package projectile
   :ensure
-  :bind (([remap projectile-switch-project] . helm-projectile)
+  :bind (([remap projectile-switch-project] . helm-projectile-switch-project)
          ([remap projectile-find-file] . helm-projectile-find-file-dwim)
          ([remap projectile-switch-to-buffer] . helm-projectile-switch-to-buffer))
   :init
@@ -597,6 +596,7 @@
   (setq fci-rule-character-color "#262626"
         fci-rule-column 80
         fci-always-use-textual-rule t)
+
   (hook-λ 'prog-mode-hook (fci-mode 1)))
 
 ;; Always show the git gutter
@@ -662,6 +662,10 @@
   :config
   (hook-λ 'markdown-mode-hook
     (when-program-exists "pandoc" #'pandoc-mode)))
+
+(use-package yaml-mode
+  :ensure
+  :mode (("\\.y[a]?ml$" . yaml-mode)))
 
 ;;; Programming modes
 ;; Lucy
@@ -802,10 +806,18 @@
 ;; Coffee-script
 (use-package coffee-mode
   :ensure
-  :mode (("\\.coffee\\.*" . coffee-mode))
+  :mode (("\\.coffee$" . coffee-mode))
+  :bind (("C-c C-c" . coffee-compile-region-or-buffer))
   :config
-  (setq coffee-args-repl '("-i" "--nodejs"))
+  (setq coffee-command "coffee"
+        coffee-tab-width 2
+        coffee-debug-mode t
+        coffee-args-repl '("-i" "--nodejs"))
   (add-to-list 'coffee-args-compile "--no-header")
+  (add-to-list 'coffee-args-compile "-c")
+  (add-to-list 'coffee-args-compile "--bare")
+  (hook-λ 'coffee-mode-hook
+    (subword-mode))
   ;; (bind-keys :map coffee-mode-map
   ;;            ("<C-return>" . coffee-smarter-newline)
   ;;            ("C-c C-c" . coffee-compile-region))
@@ -851,13 +863,64 @@
     ;; (bind-key "C-c C-:" #'ruby-toggle-hash-syntax ruby-mode-map)
     ))
 
-
 ;; Racket
 (use-package racket-mode
   :ensure
   :config
   (dolist (hook '(racket-mode-hook racket-repl-mode-hook))
     (add-hook 'racket-mode-hook 'racket-unicode-input-method-enable)))
+
+;; Various languages
+(defvar programming-languages-alist
+  '(("\\.clj\\'" clojure-mode clojure-mode)
+    ("\\.css\\'" css-mode css-mode)
+    ("\\.csv\\'" csv-mode csv-mode)
+    ("\\.d\\'" d-mode d-mode)
+    ("\\.dart\\'" dart-mode dart-mode)
+    ("\\.ex\\'" elixir-mode elixir-mode)
+    ("\\.exs\\'" elixir-mode elixir-mode)
+    ("\\.erl\\'" erlang erlang-mode)
+    ("\\.feature\\'" feature-mode feature-mode)
+    ("\\.go\\'" go-mode go-mode)
+    ("\\.groovy\\'" groovy-mode groovy-mode)
+    ("\\.haml\\'" haml-mode haml-mode)
+    ("\\.hs\\'" haskell-mode haskell-mode)
+    ("\\.latex\\'" auctex LaTeX-mode)
+    ("\\.less\\'" less-css-mode less-css-mode)
+    ("\\.lua\\'" lua-mode lua-mode)
+    ("\\.ml\\'" tuareg tuareg-mode)
+    ("\\.pp\\'" puppet-mode puppet-mode)
+    ("\\.php\\'" php-mode php-mode)
+    ("PKGBUILD\\'" pkgbuild-mode pkgbuild-mode)
+    ("\\.rs\\'" rust-mode rust-mode)
+    ("\\.sass\\'" sass-mode sass-mode)
+    ("\\.scala\\'" scala-mode2 scala-mode)
+    ("\\.scss\\'" scss-mode scss-mode)
+    ("\\.swift\\'" swift-mode swift-mode)
+    ("\\.textile\\'" textile-mode textile-mode)
+    ("\\.yml\\'" yaml-mode yaml-mode)
+    ("Dockerfile\\'" dockerfile-mode dockerfile-mode)))
+
+;; Setup the above programming language modes
+;; (mapc
+;;  (lambda (entry)
+;;    (let ((extension (car entry))
+;;          (package (cadr entry))
+;;          (mode (cadr (cdr entry))))
+;;      (use-package package
+;;        :ensure
+;;        :mode '((extension . mode)))))
+;;  programming-languages-alist)
+
+;; (mapc
+;;  (lambdta (entry)
+;;    (let ((extension (car entry))
+;;          (package (cadr entry))
+;;          (mode (cadr (cdr entry))))
+;;      (use-package package
+;;        :ensure
+;;        :mode ((extension . mode)))))
+;;  programming-languages-alist)
 
 ;;; Global keybindings
 (use-package key-chord
@@ -870,7 +933,9 @@
 
 (use-package which-key
   :ensure
+  :diminish which-key-mode
   :config
+  (setq which-key-idle-delay 2.0)
   (which-key-mode))
 
 (bind-keys
