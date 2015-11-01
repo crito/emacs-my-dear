@@ -616,6 +616,21 @@
       ("r" . git-gutter:revert-hunk)
       ("c" . git-gutter:clear))))
 
+;; Magit
+(use-package magit
+  :ensure
+  :bind (("C-x g" . magit-status)))
+
+;; Web browsing from within emacs
+(use-package w3m
+  :ensure
+  :demand
+  :bind (:map w3m-mode-map
+              ("<RET>" . w3m-view-this-url)
+              ("q" . bury-buffer))
+  :config
+  (setq w3m-mode-map (make-sparse-keymap)))
+
 ;; Fastnav, operate on the next/previous nth character.
 (use-package fastnav
    :ensure
@@ -807,8 +822,10 @@
 ;; Coffee-script
 (use-package coffee-mode
   :ensure
+  :demand
   :mode (("\\.coffee$" . coffee-mode))
-  :bind (("C-c C-c" . coffee-compile-region-or-buffer))
+  :bind (:map coffee-mode-map
+              ("C-c C-c" . coffee-compile-region-or-buffer))
   :config
   (setq coffee-command "coffee"
         coffee-tab-width 2
@@ -818,11 +835,49 @@
   (add-to-list 'coffee-args-compile "-c")
   (add-to-list 'coffee-args-compile "--bare")
   (hook-λ 'coffee-mode-hook
-    (subword-mode))
-  ;; (bind-keys :map coffee-mode-map
-  ;;            ("<C-return>" . coffee-smarter-newline)
-  ;;            ("C-c C-c" . coffee-compile-region))
-  )
+    (subword-mode)))
+
+;; Haskell
+;; Make sure to install hindent with cabal install hindent
+(use-package flycheck-haskell
+  :ensure
+  :config
+  (add-hook 'flycheck-mode-hook #'flycheck-haskell-setup))
+
+(use-package hindent
+  :ensure
+  :config
+  (setq hindent-style "chris-done"))
+
+(use-package shm
+  :ensure
+  :config
+  (require 'shm-case-split)
+  (require 'shm-reformat))
+
+(use-package haskell-mode
+  :ensure
+  :mode (("\\.hs\\'" . haskell-mode)
+         ("\\.lhs" . literate-haskell-mode))
+  :config
+  (require 'haskell-process)
+  (require 'haskell-interactive-mode)
+  (require 'haskell)
+  (require 'haskell-font-lock)
+  (require 'haskell-debug)
+
+  (custom-set-variables
+   '(haskell-process-suggest-remove-import-lines t)
+   '(haskell-process-auto-import-loaded-modules t)
+   '(haskell-process-log t)
+   '(haskell-process-args-cabal-repl '("--ghc-option=-ferror-spans"))
+   '(haskell-process-args-ghci '("-ferror-spans"))
+   )
+
+  (hook-modes '(haskell-mode-hook literate-haskell-mode)
+    (hindent-mode)
+    (interactive-haskell-mode)
+    (structured-haskell-mode)))
 
 ;; Slim
 (use-package slim-mode
@@ -859,6 +914,8 @@
     ;; (bind-key "G" #'bundle-open projectile-rails-command-map)
     )
   (use-package ruby-hash-syntax
+    :bind (:map ruby-mode-map
+           ("C-c C-:" . ruby-toggle-hash-syntax))
     :ensure
     ;;:init
     ;; (bind-key "C-c C-:" #'ruby-toggle-hash-syntax ruby-mode-map)
@@ -871,57 +928,70 @@
   (dolist (hook '(racket-mode-hook racket-repl-mode-hook))
     (add-hook 'hook 'racket-unicode-input-method-enable)))
 
-;; Various languages
-(defvar programming-languages-alist
-  '(("\\.clj\\'" clojure-mode clojure-mode)
-    ("\\.css\\'" css-mode css-mode)
-    ("\\.csv\\'" csv-mode csv-mode)
-    ("\\.d\\'" d-mode d-mode)
-    ("\\.dart\\'" dart-mode dart-mode)
-    ("\\.ex\\'" elixir-mode elixir-mode)
-    ("\\.exs\\'" elixir-mode elixir-mode)
-    ("\\.erl\\'" erlang erlang-mode)
-    ("\\.feature\\'" feature-mode feature-mode)
-    ("\\.go\\'" go-mode go-mode)
-    ("\\.groovy\\'" groovy-mode groovy-mode)
-    ("\\.haml\\'" haml-mode haml-mode)
-    ("\\.hs\\'" haskell-mode haskell-mode)
-    ("\\.latex\\'" auctex LaTeX-mode)
-    ("\\.less\\'" less-css-mode less-css-mode)
-    ("\\.lua\\'" lua-mode lua-mode)
-    ("\\.ml\\'" tuareg tuareg-mode)
-    ("\\.pp\\'" puppet-mode puppet-mode)
-    ("\\.php\\'" php-mode php-mode)
-    ("PKGBUILD\\'" pkgbuild-mode pkgbuild-mode)
-    ("\\.rs\\'" rust-mode rust-mode)
-    ("\\.sass\\'" sass-mode sass-mode)
-    ("\\.scala\\'" scala-mode2 scala-mode)
-    ("\\.scss\\'" scss-mode scss-mode)
-    ("\\.swift\\'" swift-mode swift-mode)
-    ("\\.textile\\'" textile-mode textile-mode)
-    ("\\.yml\\'" yaml-mode yaml-mode)
-    ("Dockerfile\\'" dockerfile-mode dockerfile-mode)))
+(use-package clojure-mode
+  :ensure)
 
-;; Setup the above programming language modes
-;; (mapc
-;;  (lambda (entry)
-;;    (let ((extension (car entry))
-;;          (package (cadr entry))
-;;          (mode (cadr (cdr entry))))
-;;      (use-package package
-;;        :ensure
-;;        :mode '((extension . mode)))))
-;;  programming-languages-alist)
+(use-package d-mode
+  :ensure)
 
-;; (mapc
-;;  (lambdta (entry)
-;;    (let ((extension (car entry))
-;;          (package (cadr entry))
-;;          (mode (cadr (cdr entry))))
-;;      (use-package package
-;;        :ensure
-;;        :mode ((extension . mode)))))
-;;  programming-languages-alist)
+(use-package dart-mode
+  :ensure)
+
+(use-package elixir-mode
+  :ensure
+  :mode (("\\.ex[s]?$" . elixir-mode)))
+
+(use-package erlang
+  :ensure
+  :mode (("\\.erl\\'" . erlang-mode)))
+
+(use-package go-mode
+  :ensure)
+
+(use-package groovy-mode
+  :ensure)
+
+(use-package haml-mode
+  :ensure)
+
+(use-package auctex
+  :ensure
+  :mode (("\\.latex\\'" . LaTeX-mode)))
+
+(use-package less-css-mode
+  :ensure)
+
+(use-package lua-mode
+  :ensure)
+
+(use-package tuareg
+  :ensure)
+
+(use-package php-mode
+  :ensure)
+
+(use-package pkgbuild-mode
+  :ensure
+  :mode (("PKGBUILD\\'" . pkgbuild-mode)))
+
+(use-package rust-mode
+  :ensure)
+
+(use-package sass-mode
+  :ensure)
+
+(use-package scala-mode2
+  :ensure)
+
+(use-package swift-mode
+  :ensure)
+
+(use-package textile-mode
+  :ensure)
+
+(use-package dockerfile-mode
+  :ensure
+  :mode (("Dockerfile\\'" . dockerfile-mode)))
 
 ;;; Global keybindings
 (use-package key-chord
@@ -942,15 +1012,16 @@
 (bind-keys
  ("M-0" . delete-window)
  ("M-1" . delete-other-windows)
- ("M-2" . vsplit-last-buffer)
- ("M-3" . hsplit-last-buffer)
- ("C-x 2" . vsplit-same-buffer)
- ("C-x 3" . hsplit-same-buffer)
+ ("M-2" . vsplit-same-buffer)
+ ("M-3" . hsplit-same-buffer)
+ ("C-x 2" . vsplit-last-buffer)
+ ("C-x 3" . hsplit-last-buffer)
  ("C-M-j" . join-line)
  ("RET" . newline-and-indent)
  ("C-a" . prelude-move-beginning-of-line)
- ("C-c C-c r" . prelude-rename-buffer-and-file)
- ("C-c C-c d" . prelude-delete-file-and-buffer))
+ ;; ("C-c C-c r" . prelude-rename-buffer-and-file)
+ ;; ("C-c C-c d" . prelude-delete-file-and-buffer)
+ )
 
 (provide 'init)
 ;;; init.el ends here
