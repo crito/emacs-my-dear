@@ -679,6 +679,224 @@
   (hook-λ 'markdown-mode-hook
     (when-program-exists "pandoc" #'pandoc-mode)))
 
+;; A lot of this is from: http://doc.norang.ca/org-mode.html
+(use-package org
+  :ensure
+  :demand
+  :mode (("\\.org\\'" . org-mode)
+         ("\\.org_archive$" . org-mode))
+  :bind (("C-c l" . org-store-link)
+         ("C-c a" . org-agenda)
+         ("C-c b" . org-iswitchb)
+         ("C-c c" . org-capture)
+         ;; ("C-<F6>" . (lambda ()
+         ;;               (interactive)
+         ;;               (bookmark-set "SAVED")))
+         ;; ("<F6>" . (lambda ()
+         ;;            (interactive)
+         ;;            (bookmark-jump "SAVED")))
+         )
+  :config
+  (use-package org-helpers
+    :load-path "site-lisp/org")
+
+  (require 'org-habit)
+
+  (defvar emd/organization-task-id "1d7b3619-a6d9-409f-986b-d25a0f3e09ad")
+
+  (setq org-export-coding-system 'utf-8
+        default-process-coding-system '(utf-8-unix . utf-8-unix)
+        org-catch-invisible-edits 'error
+        org-directory "~/.org"
+        org-agenda-files '("~/.org")
+        org-default-notes-file (expand-file-name "notes.org" org-directory)
+        org-default-refile-file (expand-file-name "refile.org" org-directory)
+        org-default-journal-file (expand-file-name "journal.org" org-directory)
+        org-default-reading-file (expand-file-name "reading.org" org-directory)
+        org-capture-templates
+        '(("t" "Todo" entry (file org-default-refile-file)
+           "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
+          ("n" "Note" entry (file org-default-refile-file)
+           "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+          ("r" "Reading" entry (file org-default-reading-file)
+           "* TODO %? :READING:\n%U\n%a\n" :clock-in t :clock-resume t)
+          ("j" "Journal" entry (file+datetree org-default-journal-file)
+           "* %?\n%U\n")
+          ("m" "Meeting" entry (file org-default-refile-file)
+           "* MEETING with %? :MEETING:\n%U" :clock-in t :clock-resume t))
+        org-todo-keywords
+        '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!/!)")
+          (sequence "WAITING(w@/!)" "HOLD(h@/!)" "SOMEDAY(o)" "|" "CANCELLED(c@/!)" "MEETING"))
+        org-todo-keyword-faces '(("TODO" :foreground "red" :weight bold)
+                                 ("NEXT" :foreground "blue" :weight bold)
+                                 ("DONE" :foreground "green" :weight bold)
+                                 ("WAITING" :foreground "yellow" :weight bold)
+                                 ("HOLD" :foreground "magenta" :weight bold)
+                                 ("CANCELLED" :foreground "cyan")
+                                 ("SOMEDAY" :foreground "black" :weight bold)
+                                 ("MEETING" :foreground "magenta" :weight bold))
+        org-todo-state-tags-triggers '(("CANCELLED" ("CANCELLED" . t))
+                                       ("WAITING" ("WAITING" . t))
+                                       ("HOLD" ("WAITING") ("HOLD" . t))
+                                       (done ("WAITING") ("HOLD"))
+                                       ("TODO" ("WAITING") ("CANCELLED") ("HOLD"))
+                                       ("NEXT" ("WAITING") ("CANCELLED") ("HOLD"))
+                                       ("DONE" ("WAITING") ("CANCELLED") ("HOLD")))
+        org-agenda-custom-commands
+        '(("N" "Notes" tags "NOTE"
+           ((org-agenda-overriding-header "Notes")
+            (org-tags-match-list-sublevels)))
+          (" " "Agenda"
+               ((agenda "" nil)
+                (tags "REFILE"
+                      ((org-agenda-overriding-header "Tasks to Refile")
+                       (org-tags-match-list-sublevels nil)))
+                (tags "READING"
+                      ((org-agenda-overriding-header "Reading list")
+                       (org-tags-match-list-sublevels nil)))
+                (tags-todo "-CANCELLED/!"
+                           ((org-agenda-overriding-header "Stuck Projects")
+                            (org-agenda-skip-function 'emd/skip-non-stuck-projects)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-HOLD-CANCELLED/!"
+                           ((org-agenda-overriding-header "Projects")
+                            (org-agenda-skip-function 'emd/skip-non-projects)
+                            (org-tags-match-list-sublevels 'indented)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-CANCELLED/!NEXT"
+                           ((org-agenda-overriding-header (concat "Project Next Tasks"
+                                                                  (if emd/hide-scheduled-and-waiting-next-tasks
+                                                                      ""
+                                                                    " (including WAITING and SCHEDULED tasks)")))
+                            (org-agenda-skip-function 'emd/skip-projects-and-habits-and-single-tasks)
+                            (org-tags-match-list-sublevels t)
+                            (org-agenda-todo-ignore-scheduled emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-deadlines emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-with-date emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-sorting-strategy
+                             '(todo-state-down effort-up category-keep))))
+                (tags-todo "-REFILE-CANCELLED-WAITING-HOLD/!"
+                           ((org-agenda-overriding-header (concat "Project Subtasks"
+                                                                  (if emd/hide-scheduled-and-waiting-next-tasks
+                                                                      ""
+                                                                    " (including WAITING and SCHEDULED tasks)")))
+                            (org-agenda-skip-function 'emd/skip-non-project-tasks)
+                            (org-agenda-todo-ignore-scheduled emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-deadlines emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-with-date emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-REFILE-CANCELLED-WAITING-HOLD/!"
+                           ((org-agenda-overriding-header (concat "Standalone Tasks"
+                                                                  (if emd/hide-scheduled-and-waiting-next-tasks
+                                                                      ""
+                                                                    " (including WAITING and SCHEDULED tasks)")))
+                            (org-agenda-skip-function 'emd/skip-project-tasks)
+                            (org-agenda-todo-ignore-scheduled emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-deadlines emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-with-date emd/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-CANCELLED+WAITING|HOLD/!"
+                           ((org-agenda-overriding-header "Waiting and Postponed Tasks")
+                            (org-agenda-skip-function 'emd/skip-stuck-projects)
+                            (org-tags-match-list-sublevels nil)
+                            (org-agenda-todo-ignore-scheduled t)
+                            (org-agenda-todo-ignore-deadlines t)))
+                (tags "-REFILE/"
+                      ((org-agenda-overriding-header "Tasks to Archive")
+                       (org-agenda-skip-function 'emd/skip-non-archivable-tasks)
+                       (org-tags-match-list-sublevels nil))))
+               nil))
+
+        org-indirect-buffer-display 'current-window
+        org-agenda-dim-blocked-tasks nil
+        org-agenda-compact-blocks t
+        org-startup-folded t
+        org-time-clocksum-format
+        '(:hours "%d" :require-hours t :minutes ":%02d" :require-minutes t)
+        org-agenda-persistent-filter t
+        org-log-done (quote time)
+        org-log-into-drawer t
+        org-log-state-notes-insert-after-drawers nil
+        org-treat-S-cursor-todo-selection-as-state-change nil
+
+        ;; Refiling
+        org-refile-targets '((nil :maxlevel . 9)
+                             (org-agenda-files :maxlevel . 9))
+        org-refile-use-outline-path t
+        org-outline-path-complete-in-steps nil
+        org-refile-allow-creating-parent-nodes '(confirm)
+        org-completion-use-ido nil
+        org-refile-target-verify-function #'emd/verify-refile-target
+
+        ;; Archiving
+        org-archive-mark-done nil
+        org-archive-location "%s_archive::* Archived Tasks"
+
+        ;; Babel
+        org-confirm-babel-evaluate nil
+        org-src-fontify-natively t
+        org-hide-leading-stars nil
+        org-startup-indented t
+
+        ;; Tags
+        org-tag-alist '((:startgroup)
+                        ("@errand" . ?e)
+                        ("@office" . ?o)
+                        ("@home" . ?H)
+                        (:endgroup)
+                        ("WAITING" . ?w)
+                        ("HOLD" . ?h)
+                        ("PERSONAL" . ?P)
+                        ("WORK" . ?W)
+                        ("ORG" . ?O)
+                        ("CRYPTODRUNKS" . ?C)
+                        ("TTC" . ?T)
+                        ("ARTFACTS" . ?A)
+                        ("NOTE" . ?n)
+                        ("CANCELLED" . ?c)
+                        ("FLAGGED" . ??))
+        org-fast-tag-selection-single-key (quote expert)
+        org-agenda-tags-todo-honor-ignore-options t
+
+        ;; Clocking
+        org-clock-history-length 23
+        org-clock-in-resume t
+        org-drawers '("PROPERTIES" "LOGBOOK")
+        org-clock-into-drawer t
+        org-clock-out-remove-zero-time-clocks t
+        org-clock-out-when-done t
+        org-clock-persist t
+        org-clock-persist-query-resume nil
+        org-clock-auto-clock-resolution 'when-no-clock-is-running
+        org-clock-report-include-clocking-task t
+        org-clock-in-switch-to-state 'emd/clock-in-to-next
+        emd/keep-clock-running nil)
+
+  (prefer-coding-system 'utf-8)
+  (set-charset-priority 'unicode)
+
+  (org-clock-persistence-insinuate)
+
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((js . t)
+     (haskell . t)
+     (emacs-lisp . t)
+     (clojure . t)
+     (python . t)
+     (ruby . t)
+     (sh . t)
+     (awk . t)))
+
+  ;; Hooks
+  (hook-λ 'org-clock-out-hook
+    (emd/remove-empty-drawer-on-clock-out)
+    (emd/clock-out-maybe)))
+
 (use-package yaml-mode
   :ensure
   :mode (("\\.y[a]?ml$" . yaml-mode)))

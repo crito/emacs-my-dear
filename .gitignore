@@ -12,3 +12,6 @@ projectile.cache
 recentf
 custom.el
 %backup%~
+.org-id-locations
+bookmarks
+org-clock-save.el
