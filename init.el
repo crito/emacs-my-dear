@@ -665,6 +665,53 @@
   :load-path "site-lisp/mail"
   :mode (("/tmp/mutt.*$" . post-mode)))
 
+(use-package gnus-helper
+  :load-path "site-lisp/mail")
+
+(use-package gnus
+  :config
+  (setq-default
+   gnus-summary-line-format "%U%R%z %(%&user-date;  %-15,15f  %B%s%)\n"
+   gnus-user-date-format-alist '((t . "%Y-%m-%d %H:%M"))
+   gnus-summary-thread-gathering-function 'gnus-gather-threads-by-references
+   gnus-sum-thread-tree-false-root ""
+   gnus-sum-thread-tree-indent ""
+   gnus-sum-thread-tree-leaf-with-other "-> "
+   gnus-sum-thread-tree-root ""
+   gnus-sum-thread-tree-single-leaf "|_ "
+   gnus-sum-thread-tree-vertical "|")
+
+  (setq epa-file-cache-passphrase-for-symmetric-encryption t
+        smtpmail-auth-credentials "~/.authinfo.gpg"
+        nnml-directory "~/.mail2"
+        message-directory "~/.mail2"
+        gnus-ignored-newsgroups "^to\\.\\|^[0-9. ]+\\( \\|$\\)\\|^[\”]\”[#’()]"
+        gnus-select-method
+        '(nnimap "cryptodrunks"
+                 (nnimap-address "mail.cryptodrunks.net")
+                 (nnimap-server-port 993)
+                 (nnimap-stream ssl)
+                 (nnimap-authinfo-file "~/.authinfo.gpg"))
+        gnus-thread-sort-functions '((not gnus-thread-sort-by-date)
+                                     (not gnus-thread-sort-by-number))
+        gnus-use-cache t
+        nus-use-adaptive-scoring t
+        gnus-save-score t
+        gnus-parameters '(("nnimap.*" (gnus-use-scoring nil)))
+        gnus-summary-thread-gathering-function 'gnus-gather-threads-by-subject
+        gnus-thread-hide-subtree t
+        gnus-thread-ignore-subject t
+        message-send-mail-function 'smtpmail-send-it
+        smtpmail-starttls-credentials '(("mx20.cryptodrunks.net" 587 nil nil))
+        smtpmail-auth-credentials '(("mx20.cryptodrunks.net" 587 "crito" nil))
+        smtpmail-default-smtp-server "mx20.cryptodrunks.net"
+        smtpmail-smtp-server "mx20.cryptodrunks.net"
+        smtpmail-smtp-service 587)
+
+  (hook-λ 'gnus-group-mode-hook
+    (local-set-key "o" 'emd/gnus-group-list-subscribed-groups)
+    (gnus-topic-mode)))
+
 ;;; Text modes
 (use-package pandoc-mode
   :ensure
@@ -891,6 +938,10 @@
      (ruby . t)
      (sh . t)
      (awk . t)))
+
+  ;; Automatically save the agenda buffers.
+  (advice-add 'org-agenda-quit :before 'org-save-all-org-buffers)
+  (advice-add 'org-capture-finalize :after 'org-save-all-org-buffers)
 
   ;; Hooks
   (hook-λ 'org-clock-out-hook

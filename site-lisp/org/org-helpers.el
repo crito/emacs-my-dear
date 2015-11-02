@@ -287,7 +287,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 ;; Those functions help with the clocking.
 ;;;;;
 (defun emd/find-project-task ()
-  "Move point to the parent (project) task if any"
+  "Move point to the parent (project) task if any."
   (save-restriction
     (widen)
     (let ((parent-task (save-excursion (org-back-to-heading 'invisible-ok)
