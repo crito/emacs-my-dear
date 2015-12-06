@@ -590,6 +590,16 @@
   ;;(advice-add 'comment-or-uncomment-region :before #'with-region-or-line)
   ;;)
 
+(use-package wc-mode
+  :load-path "site-lisp/misc")
+
+(use-package beacon
+  :ensure
+  :config
+  (beacon-mode)
+  (setq beacon-push-mark 35
+        beacon-color "#666600"))
+
 ;; Indicate the 80 columns limit.
 (use-package fill-column-indicator
   :ensure
@@ -750,6 +760,32 @@
   (hook-λ 'markdown-mode-hook
     (when-program-exists "pandoc" #'pandoc-mode)))
 
+(use-package reftex
+  :config
+  (setq
+   reftex-default-bibliography "~/research/refs.bib"
+   reftex-enable-partial-scans t
+   reftex-save-parse-info t
+   reftex-use-multiple-selection-buffers t
+   reftex-plug-into-AUCTeX t
+   reftex-cite-prompt-optional-args nil
+   reftex-cite-cleanup-optional-args t
+   reftex-bibliography-commands '("bibliography"
+                                  "nobibliography"
+                                  "addbibresource")))
+
+(use-package auctex
+  :defer
+  :config
+  (load "auctex.el" nil t t)
+  (setq TeX-auto-save t
+        TeX-parse-self t)
+  (add-hook 'LaTeX-mode 'turn-on-reftex))
+
+;; (use-package cdlatex
+;;   :ensure
+;;   :diminish OCDL)
+
 ;; A lot of this is from: http://doc.norang.ca/org-mode.html
 (use-package org
   :ensure
@@ -760,6 +796,8 @@
          ("C-c a" . org-agenda)
          ("C-c b" . org-iswitchb)
          ("C-c c" . org-capture)
+         ("C-c (" . emd/org-mode-reftex-search)
+         ("C-c )" . reftex-citation)
          ;; ("C-<F6>" . (lambda ()
          ;;               (interactive)
          ;;               (bookmark-set "SAVED")))
@@ -778,12 +816,18 @@
   (setq org-export-coding-system 'utf-8
         default-process-coding-system '(utf-8-unix . utf-8-unix)
         org-catch-invisible-edits 'error
+        org-ellipsis "▼"
         org-directory "~/.org"
         org-agenda-files '("~/.org")
         org-default-notes-file (expand-file-name "notes.org" org-directory)
         org-default-refile-file (expand-file-name "refile.org" org-directory)
         org-default-journal-file (expand-file-name "journal.org" org-directory)
         org-default-reading-file (expand-file-name "reading.org" org-directory)
+        org-link-abbrev-alist
+        '(("bib" . "~/research/papers/bibtex/%s.bib")
+          ("notes" . "file:~/.org/notes.org::#%s")
+          ("papers" . "~/research/papers/%s.pdf"))
+        org-latex-pdf-process (list "latexmk -pdflatex='pdflatex -interaction nonstopmode' -pdf -bibtex -f %f")
         org-capture-templates
         '(("t" "Todo" entry (file org-default-refile-file)
            "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
@@ -896,6 +940,11 @@
         org-log-state-notes-insert-after-drawers nil
         org-treat-S-cursor-todo-selection-as-state-change nil
 
+        ;; Drawers
+        ;; From org-mode 8.3 on this will be obsolete, org-mode recognizes the
+        ;; drawers automatically.
+        org-drawers '("PROPERTIES" "LOGBOOK" "META")
+
         ;; Refiling
         org-refile-targets '((nil :maxlevel . 9)
                              (org-agenda-files :maxlevel . 9))
@@ -938,7 +987,6 @@
         ;; Clocking
         org-clock-history-length 23
         org-clock-in-resume t
-        org-drawers '("PROPERTIES" "LOGBOOK")
         org-clock-into-drawer t
         org-clock-out-remove-zero-time-clocks t
         org-clock-out-when-done t
@@ -948,6 +996,12 @@
         org-clock-report-include-clocking-task t
         org-clock-in-switch-to-state 'emd/clock-in-to-next
         emd/keep-clock-running nil)
+
+  (org-add-link-type
+   "tag" (lambda (tag) (org-tags-view nil tag)))
+
+  (org-add-link-type
+   "grep" (lambda (term) (ag-project term)))
 
   (prefer-coding-system 'utf-8)
   (set-charset-priority 'unicode)
@@ -972,7 +1026,13 @@
   ;; Hooks
   (hook-λ 'org-clock-out-hook
     (emd/remove-empty-drawer-on-clock-out)
-    (emd/clock-out-maybe)))
+    (emd/clock-out-maybe))
+  (hook-λ 'org-mode-hook
+    (emd/org-mode-reftex-setup)
+    (wc-mode)
+    (turn-on-org-cdlatex)
+    (lambda () (setq ispell-parser 'tex))
+    (set (make-variable-buffer-local 'ispell-parser) 'tex)))
 
 (use-package yaml-mode
   :ensure

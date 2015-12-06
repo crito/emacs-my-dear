@@ -397,6 +397,68 @@ If no task is selected set the Organization task as the default task."
                   :history hist
                   :default def))
 
+;; Manage research with org-mode
+;; See:
+;; https://tincman.wordpress.com/2011/01/04/research-paper-management-with-emacs-org-mode-and-reftex/
+(defun emd/org-mode-reftex-search ()
+  ;;jump to the notes for the paper pointed to at from reftex search
+  (interactive)
+  (org-open-link-from-string (format "[[notes:%s]]" (first (reftex-citation t)))))
+
+(defun emd/org-mode-reftex-setup ()
+  (load-library "reftex")
+  (and (buffer-file-name) (file-exists-p (buffer-file-name))
+       (progn
+         ;; ;enable auto-revert-mode to update reftex when bibtex file changes on disk
+         ;; (global-auto-revert-mode t)
+         (reftex-parse-all)
+         ; add a custom reftex cite format to insert links
+         (reftex-set-cite-format
+          '((?b . "[[bib:%l][%l-bib]]")
+            (?n . "[[notes:%l][%l-notes]]")
+            (?p . "[[papers:%l][%l-paper]]")
+            (?R . "[[notes:%l][%a - %t]]")
+            (?c . "\\cite{%l}")
+            (?C . "\\cite[see][]{%l}")
+            (?s . "\\parencite{%l}")
+            (?S . "\\parencite[see][]{%l}")
+            (?f . "\\footcite[][]{%l}")
+            (?F . "\\footcite[see][]{%l}")
+            (?V . "\\fullcite[]{%l}")
+            (?x . "[]{%l}")
+            (?X . "{%l}")
+            (?T . "%t")
+            (?A . "%a")
+            (?h . "*** TODO %t\n:PROPERTIES:\n:Custom_ID: %l\n:END:\n:META:[[papers:%l][paper]]/[[bib:%l][bibtex]]:END:"))))))
+
+(require 'ox-latex)
+(add-to-list 'org-latex-classes
+             '("tuftebook"
+               "\\documentclass{tufte-book}\n
+\\usepackage{color}
+\\usepackage{amssymb}
+\\usepackage{gensymb}
+\\usepackage{nicefrac}
+\\usepackage{units}"
+               ("\\section{%s}" . "\\section*{%s}")
+               ("\\subsection{%s}" . "\\subsection*{%s}")
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
+(add-to-list 'org-latex-classes
+             '("tuftehandout"
+               "\\documentclass{tufte-handout}
+\\usepackage{color}
+\\usepackage{amssymb}
+\\usepackage{amsmath}
+\\usepackage{gensymb}
+\\usepackage{nicefrac}
+\\usepackage{units}"
+               ("\\section{%s}" . "\\section*{%s}")
+               ("\\subsection{%s}" . "\\subsection*{%s}")
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
 (provide 'org-helpers)
 
 ;;; org-helpers.el ends here
