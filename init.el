@@ -1192,6 +1192,33 @@
   (hook-λ 'coffee-mode-hook
     (subword-mode)))
 
+;; PureScript
+(use-package purescript-mode
+  :ensure
+  :config
+  (flycheck-define-checker pulp
+    "Use Pulp to flycheck PureScript code."
+    :command ("pulp" "--monochrome" "build")
+    :error-patterns
+    ((error line-start
+            (or (and "Error at " (file-name) " line " line ", column " column
+                     (one-or-more not-newline)
+                     (message (one-or-more (not (in "*")))))
+                (and "psc: " (one-or-more not-newline) "\n"
+                     (message (one-or-more not-newline) "\n")
+                     "at \"" (file-name) "\" (line " line ", column " column ")")
+                (and "Unable to parse module:\n"
+                     "  \"" (file-name) "\" (line " line ", column " column "):\n"
+                     (message (one-or-more not-newline) "\n"
+                              (one-or-more not-newline) "\n"
+                              (one-or-more not-newline) "\n")))
+            line-end))
+    :modes purescript-mode)
+  (add-to-list 'flycheck-checkers 'pulp)
+  (hook-λ 'purescript-mode-hook
+    (turn-on-purescript-indentation)
+    (turn-on-purescript-decl-scan)))
+
 ;; Haskell
 ;; Make sure to install hindent with cabal install hindent
 (use-package flycheck-haskell
