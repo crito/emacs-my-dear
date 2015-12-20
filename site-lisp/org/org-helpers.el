@@ -417,7 +417,7 @@ If no task is selected set the Organization task as the default task."
           '((?b . "[[bib:%l][%l-bib]]")
             (?n . "[[notes:%l][%l-notes]]")
             (?p . "[[papers:%l][%l-paper]]")
-            (?R . "[[notes:%l][%a - %t]]")
+            (?R . "[ ] [[notes:%l][%a - %t]]")
             (?c . "\\cite{%l}")
             (?C . "\\cite[see][]{%l}")
             (?s . "\\parencite{%l}")
@@ -429,7 +429,7 @@ If no task is selected set the Organization task as the default task."
             (?X . "{%l}")
             (?T . "%t")
             (?A . "%a")
-            (?h . "*** TODO %t\n:PROPERTIES:\n:Custom_ID: %l\n:END:\n:META:[[papers:%l][paper]]/[[bib:%l][bibtex]]:END:"))))))
+            (?h . "*** TODO %t\n:PROPERTIES:\n:Custom_ID: %l\n:END:\n:META:\n- [[papers:%l][paper]]\n- [[bib:%l][bibtex]]\n:END:"))))))
 
 (require 'ox-latex)
 (add-to-list 'org-latex-classes
